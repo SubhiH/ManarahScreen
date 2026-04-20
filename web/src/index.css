@@ -1,0 +1,34 @@
+@import './styles/themes.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--t-body-gradient);
+    color: rgb(var(--t-text-rgb));
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .arabic {
+    font-family: 'Amiri', serif;
+    direction: rtl;
+  }
+}
