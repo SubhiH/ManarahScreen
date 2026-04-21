@@ -21,10 +21,14 @@ export type PublicSettings = {
   dimOpacity: number;
   sunriseCounterMinutes: number;
   sunriseCounterLabel: string;
-  sunriseCounterPosition: 'top-banner' | 'sidebar-inline';
+  sunriseCounterPosition: 'slide-area' | 'top-banner' | 'sidebar-inline';
   dailySyncTime: string;
   locale: string;
   clockSeconds: boolean;
+  fontScalePrayer: number;
+  fontScaleClock: number;
+  fontScaleJumuah: number;
+  fontScaleNextPrayer: number;
   masjidalConfigured: boolean;
 };
 

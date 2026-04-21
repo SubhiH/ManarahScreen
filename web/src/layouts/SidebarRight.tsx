@@ -57,7 +57,7 @@ export default function SidebarRight(p: DisplayProps) {
 
   return (
     <div ref={rootRef} className="relative flex h-full w-full select-none">
-      <div className="relative flex-1">
+      <div className="relative flex-1 [container-type:size]">
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
         <CountdownOverlay
@@ -65,12 +65,15 @@ export default function SidebarRight(p: DisplayProps) {
           prayerLabel={p.countdown.label}
           secondsRemaining={p.countdown.secondsRemaining}
         />
-        {p.settings.sunriseCounterPosition === 'top-banner' && (
+        {(p.settings.sunriseCounterPosition === 'slide-area' ||
+          p.settings.sunriseCounterPosition === 'top-banner') && (
           <SunriseCounter
             show={p.sunrise.active}
             label={p.settings.sunriseCounterLabel}
             secondsRemaining={p.sunrise.secondsRemaining}
-            position="top-banner"
+            totalSeconds={p.sunrise.totalSeconds}
+            endTime={p.sunrise.endTime}
+            position={p.settings.sunriseCounterPosition}
           />
         )}
       </div>
@@ -100,18 +103,28 @@ export default function SidebarRight(p: DisplayProps) {
 
       <aside
         className="flex h-full flex-col border-l border-theme-border/10 bg-theme-bg/80 backdrop-blur"
-        style={{ width: `${pct}%` }}
+        style={
+          {
+            width: `${pct}%`,
+            '--scale-prayer': p.settings.fontScalePrayer ?? 1,
+            '--scale-clock': p.settings.fontScaleClock ?? 1,
+            '--scale-jumuah': p.settings.fontScaleJumuah ?? 1,
+            '--scale-next': p.settings.fontScaleNextPrayer ?? 1,
+          } as React.CSSProperties
+        }
       >
         <div className="flex flex-col items-center gap-4 border-b border-theme-border/10 py-6">
           <Clock now={p.now} withSeconds={p.settings.clockSeconds} size="md" />
           <NextPrayerTicker now={p.now} action={p.nextAction} variant="block" />
         </div>
         {p.settings.sunriseCounterPosition === 'sidebar-inline' && (
-          <div className="flex justify-center py-3">
+          <div className="flex justify-center py-3 [container-type:inline-size]">
             <SunriseCounter
               show={p.sunrise.active}
               label={p.settings.sunriseCounterLabel}
               secondsRemaining={p.sunrise.secondsRemaining}
+              totalSeconds={p.sunrise.totalSeconds}
+              endTime={p.sunrise.endTime}
               position="sidebar-inline"
             />
           </div>
@@ -124,6 +137,7 @@ export default function SidebarRight(p: DisplayProps) {
             showSunrise={p.settings.showSunrise}
             jumuah={p.jumuah}
             jumuahCount={p.settings.jumuahCount}
+            duhaMinutesAfterSunrise={p.settings.sunriseCounterMinutes}
           />
         </div>
       </aside>

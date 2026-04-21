@@ -10,7 +10,13 @@ export type DisplayProps = {
   jumuah: { j1?: string; j2?: string; j3?: string };
   slides: UnifiedSlide[];
   countdown: { active: boolean; label?: string; secondsRemaining: number };
-  sunrise: { active: boolean; secondsRemaining: number };
+  sunrise: {
+    active: boolean;
+    secondsRemaining: number;
+    totalSeconds: number;
+    /** Wall-clock time when the post-Sunrise window ends, formatted (e.g. "6:38 AM"). */
+    endTime?: string;
+  };
   dim: { active: boolean };
   nextAction: { kind: 'adhan' | 'iqamah'; label: string; at: DateTime } | null;
 };

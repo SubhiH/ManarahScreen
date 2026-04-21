@@ -122,9 +122,12 @@ function resolveIqama(setting: unknown, value: unknown, adhanHm?: string): strin
   return undefined;
 }
 
-function unixToHHmmInTz(ts: number, tz: string): string {
+function unixToHHmmInTz(ts: number, _tz: string): string {
+  // Masjidal encodes the LOCAL time-of-day as if it were UTC (server-side bug).
+  // E.g. 5:55 AM Boston sunrise comes back as ts=2026-04-21T05:55:00Z, not 09:55Z.
+  // Reading the timestamp's UTC HH:mm therefore yields the correct local clock value.
   return new Date(ts * 1000).toLocaleTimeString('en-GB', {
-    timeZone: tz,
+    timeZone: 'UTC',
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',

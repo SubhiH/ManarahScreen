@@ -62,3 +62,12 @@ export function mmss(totalSeconds: number): string {
   const sec = s % 60;
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
+
+export function addMinutesHm(hm: string, mins: number): string {
+  const m = hm.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return hm;
+  const total = (Number(m[1]) * 60 + Number(m[2]) + Math.round(mins) + 24 * 60) % (24 * 60);
+  const h = Math.floor(total / 60);
+  const mm = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}

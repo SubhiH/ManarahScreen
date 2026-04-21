@@ -417,10 +417,10 @@ function PrayerTab({ s, save }: { s: SettingsState; save: SaveFn }) {
         <PreviewButton mode="countdown" label="Preview countdown overlay" />
       </Card>
 
-      <Card title="Post-Sunrise (Ishraq) inline counter">
+      <Card title="Time for Duha (post-Sunrise) counter">
         <Field
           label={`Duration: ${s.sunriseCounterMinutes} minutes`}
-          hint="Small banner (not full-screen) shown after Sunrise."
+          hint="Card with circular progress shown after Sunrise. Also drives the Duha time on the prayer table."
         >
           <input
             type="range"
@@ -444,14 +444,42 @@ function PrayerTab({ s, save }: { s: SettingsState; save: SaveFn }) {
             value={s.sunriseCounterPosition}
             onChange={(e) => save({ sunriseCounterPosition: e.target.value })}
           >
+            <option value="slide-area">Slide area (large takeover)</option>
             <option value="top-banner">Top banner (over slides)</option>
             <option value="sidebar-inline">Sidebar inline</option>
           </select>
         </Field>
         <PreviewButton
           mode="sunrise"
-          label="Preview sunrise counter"
+          label="Preview Duha countdown"
           hint="Capped to 60s for preview."
+        />
+      </Card>
+
+      <Card title="Sidebar-right font sizes">
+        <div className="text-xs text-theme-text-dim/70">
+          Multiplier on the baseline size for each block in the right sidebar. 1.00 is the
+          built-in default; lower for cramped screens, higher for big monitors.
+        </div>
+        <FontScaleSlider
+          label="Prayer + Iqama"
+          value={s.fontScalePrayer}
+          onChange={(v) => save({ fontScalePrayer: v })}
+        />
+        <FontScaleSlider
+          label="Main clock"
+          value={s.fontScaleClock}
+          onChange={(v) => save({ fontScaleClock: v })}
+        />
+        <FontScaleSlider
+          label="Jumu'ah"
+          value={s.fontScaleJumuah}
+          onChange={(v) => save({ fontScaleJumuah: v })}
+        />
+        <FontScaleSlider
+          label="Time for next prayer"
+          value={s.fontScaleNextPrayer}
+          onChange={(v) => save({ fontScaleNextPrayer: v })}
         />
       </Card>
 
@@ -733,6 +761,59 @@ function SecurityTab() {
       </button>
       {msg && <div className="text-sm text-theme-text-dim">{msg}</div>}
     </Card>
+  );
+}
+
+function FontScaleSlider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const v = value ?? 1;
+  const step = (delta: number) => {
+    const next = Math.round((v + delta) * 100) / 100;
+    onChange(Math.max(0.6, Math.min(1.8, next)));
+  };
+  return (
+    <Field label={`${label}: ${v.toFixed(2)}×`}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => step(-0.05)}
+          className="rounded-md border border-theme-border/10 px-3 py-1 text-sm text-theme-text/90 hover:bg-theme-border/5"
+        >
+          −
+        </button>
+        <input
+          type="range"
+          min={0.6}
+          max={1.8}
+          step={0.05}
+          value={v}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => step(0.05)}
+          className="rounded-md border border-theme-border/10 px-3 py-1 text-sm text-theme-text/90 hover:bg-theme-border/5"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(1)}
+          className="rounded-md border border-theme-border/10 px-2 py-1 text-xs text-theme-text-dim hover:bg-theme-border/5"
+          title="Reset to 1.00"
+        >
+          Reset
+        </button>
+      </div>
+    </Field>
   );
 }
 

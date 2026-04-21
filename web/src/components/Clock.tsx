@@ -11,35 +11,26 @@ type Props = {
 
 export default function Clock({ now, withSeconds, size = 'lg', className }: Props) {
   const h = hijriForDate(now);
+  const main = size === 'lg' ? '4.2vw' : size === 'md' ? '2.8vw' : '1.6vw';
+  const date = size === 'lg' ? '1.3vw' : size === 'md' ? '1.1vw' : '0.9vw';
+  const hijri = size === 'lg' ? '1vw' : size === 'md' ? '0.9vw' : '0.8vw';
   return (
     <div className={cn('flex flex-col items-center text-center', className)}>
       <div
-        className={cn(
-          'whitespace-nowrap tabular-nums font-mono font-bold leading-none tracking-tight text-theme-accent drop-shadow',
-          size === 'lg' && 'text-[4.2vw]',
-          size === 'md' && 'text-[2.8vw]',
-          size === 'sm' && 'text-[1.6vw]',
-        )}
+        className="whitespace-nowrap tabular-nums font-mono font-bold leading-none tracking-tight text-theme-accent drop-shadow"
+        style={{ fontSize: `calc(${main} * var(--scale-clock, 1))` }}
       >
         {fmtClock(now, withSeconds)}
       </div>
       <div
-        className={cn(
-          'mt-2 font-medium text-theme-text',
-          size === 'lg' && 'text-[1.3vw]',
-          size === 'md' && 'text-[1.1vw]',
-          size === 'sm' && 'text-[0.9vw]',
-        )}
+        className="mt-2 font-medium text-theme-text"
+        style={{ fontSize: `calc(${date} * var(--scale-clock, 1))` }}
       >
         {now.toFormat('cccc, LLLL d, yyyy')}
       </div>
       <div
-        className={cn(
-          'mt-1 text-theme-text-dim',
-          size === 'lg' && 'text-[1vw]',
-          size === 'md' && 'text-[0.9vw]',
-          size === 'sm' && 'text-[0.8vw]',
-        )}
+        className="mt-1 text-theme-text-dim"
+        style={{ fontSize: `calc(${hijri} * var(--scale-clock, 1))` }}
       >
         {h.dDay} {h.month} {h.y} AH
       </div>

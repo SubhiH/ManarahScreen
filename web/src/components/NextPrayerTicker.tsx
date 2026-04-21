@@ -24,11 +24,22 @@ export default function NextPrayerTicker({ now, action, variant = 'block', class
           className,
         )}
       >
-        <span className="text-[0.8vw] uppercase tracking-wider opacity-80">
+        <span
+          className="uppercase tracking-wider opacity-80"
+          style={{ fontSize: 'calc(0.8vw * var(--scale-next, 1))' }}
+        >
           {isIqama ? 'Iqama in' : 'Next'}
         </span>
-        <span className="text-[1.1vw] font-semibold">{action.label}</span>
-        <span className="font-mono text-[1.2vw] tabular-nums">
+        <span
+          className="font-semibold"
+          style={{ fontSize: 'calc(1.1vw * var(--scale-next, 1))' }}
+        >
+          {action.label}
+        </span>
+        <span
+          className="font-mono tabular-nums"
+          style={{ fontSize: 'calc(1.2vw * var(--scale-next, 1))' }}
+        >
           {fmtDuration(totalSec)}
         </span>
       </div>
@@ -47,17 +58,19 @@ export default function NextPrayerTicker({ now, action, variant = 'block', class
     >
       <div
         className={cn(
-          'text-[0.85vw] uppercase tracking-[0.25em]',
+          'uppercase tracking-[0.25em]',
           isIqama ? 'text-theme-next' : 'text-theme-accent/80',
         )}
+        style={{ fontSize: 'calc(0.85vw * var(--scale-next, 1))' }}
       >
         {isIqama ? `${action.label} · Iqama in` : `Next Adhan · ${action.label}`}
       </div>
       <div
         className={cn(
-          'font-mono text-[2.2vw] font-bold leading-none tabular-nums',
+          'font-mono font-bold leading-none tabular-nums',
           isIqama ? 'text-theme-next' : 'text-theme-text',
         )}
+        style={{ fontSize: 'calc(2.2vw * var(--scale-next, 1))' }}
       >
         {fmtDuration(totalSec)}
       </div>

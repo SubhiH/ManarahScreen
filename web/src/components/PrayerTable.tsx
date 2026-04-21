@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { fmtTimeShort } from '@/lib/time';
+import { addMinutesHm, fmtTimeShort } from '@/lib/time';
 import type { PrayerRow } from '@/lib/types';
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   jumuahCount: 1 | 2 | 3;
   compact?: boolean;
   orientation?: 'vertical' | 'horizontal';
+  /** Vertical layout only: when set, the sunrise row also shows a "Duha" cell at sunrise + N min. */
+  duhaMinutesAfterSunrise?: number;
 };
 
 export default function PrayerTable({
@@ -22,6 +24,7 @@ export default function PrayerTable({
   jumuahCount,
   compact,
   orientation = 'vertical',
+  duhaMinutesAfterSunrise,
 }: Props) {
   const visible = showSunrise ? rows : rows.filter((r) => r.key !== 'sunrise');
 
@@ -48,7 +51,10 @@ export default function PrayerTable({
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       {/* Column header — aligned with each row's two time columns */}
-      <div className="mx-2 shrink-0 grid grid-cols-2 gap-2 px-3 pb-[0.4vh] text-[min(1.5vh,1.1vw)] uppercase tracking-[0.25em] text-theme-text-dim">
+      <div
+        className="mx-2 shrink-0 grid grid-cols-2 gap-2 px-3 pb-[0.4vh] uppercase tracking-[0.25em] text-theme-text-dim"
+        style={{ fontSize: 'calc(min(1.5vh, 1.1vw) * var(--scale-prayer, 1))' }}
+      >
         <span className="text-center">Adhan</span>
         <span className="text-center">Iqama</span>
       </div>
@@ -61,13 +67,17 @@ export default function PrayerTable({
             key={r.key}
             row={r}
             highlight={r.key === currentKey ? 'current' : r.key === nextKey ? 'next' : 'none'}
+            duhaMinutes={duhaMinutesAfterSunrise}
           />
         ))}
       </div>
 
       {/* Jumu'ah strip — natural height, sized with vh so it scales with monitor */}
       <div className="mx-2 shrink-0 border-t border-theme-border/10 pt-[0.8vh]">
-        <div className="mb-[0.4vh] text-[min(1.4vh,1vw)] uppercase tracking-widest text-theme-text-dim">
+        <div
+          className="mb-[0.4vh] uppercase tracking-widest text-theme-text-dim"
+          style={{ fontSize: 'calc(min(1.4vh, 1vw) * var(--scale-jumuah, 1))' }}
+        >
           Jumu'ah
         </div>
         <div className="flex flex-col gap-[0.3vh] pb-[0.4vh]">
@@ -83,10 +93,19 @@ export default function PrayerTable({
 function PrayerRowVertical({
   row,
   highlight,
+  duhaMinutes,
 }: {
   row: PrayerRow;
   highlight: 'current' | 'next' | 'none';
+  duhaMinutes?: number;
 }) {
+  const isSunrise = row.key === 'sunrise';
+  const showDuha = isSunrise && !!row.adhan && !!duhaMinutes && duhaMinutes > 0;
+  const duhaHm = showDuha ? addMinutesHm(row.adhan!, duhaMinutes!) : undefined;
+
+  const labelStyle = { fontSize: 'calc(min(4cqh, 4.5cqw) * var(--scale-prayer, 1))' };
+  const timeStyle = { fontSize: 'calc(min(7cqh, 8cqw) * var(--scale-prayer, 1))' };
+
   return (
     <div
       className={cn(
@@ -99,23 +118,50 @@ function PrayerRowVertical({
         highlight === 'none' && 'text-theme-text hover:bg-theme-border/5',
       )}
     >
-      <div className="flex items-center gap-2 font-semibold uppercase leading-none tracking-wide text-[min(4cqh,4.5cqw)]">
-        {highlight === 'current' && (
-          <span className="h-2 w-2 shrink-0 animate-ping rounded-full bg-theme-accent" />
-        )}
-        <span className="truncate">{row.label}</span>
-      </div>
+      {showDuha ? (
+        <div className="grid grid-cols-2 gap-2">
+          <div
+            className="flex items-center justify-center gap-2 font-semibold uppercase leading-none tracking-wide"
+            style={labelStyle}
+          >
+            {highlight === 'current' && (
+              <span className="h-2 w-2 shrink-0 animate-ping rounded-full bg-theme-accent" />
+            )}
+            <span className="truncate">{row.label}</span>
+          </div>
+          <div
+            className="flex items-center justify-center font-semibold uppercase leading-none tracking-wide opacity-80"
+            style={labelStyle}
+          >
+            <span className="truncate">Duha</span>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="flex items-center gap-2 font-semibold uppercase leading-none tracking-wide"
+          style={labelStyle}
+        >
+          {highlight === 'current' && (
+            <span className="h-2 w-2 shrink-0 animate-ping rounded-full bg-theme-accent" />
+          )}
+          <span className="truncate">{row.label}</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
-        <span className="text-center font-mono leading-none tabular-nums opacity-85 text-[min(7cqh,8cqw)]">
+        <span
+          className="text-center font-mono leading-none tabular-nums opacity-85"
+          style={timeStyle}
+        >
           {fmtTimeShort(row.adhan)}
         </span>
         <span
           className={cn(
-            'text-center font-mono font-bold leading-none tabular-nums text-[min(7cqh,8cqw)]',
-            row.key === 'sunrise' && 'opacity-30',
+            'text-center font-mono font-bold leading-none tabular-nums',
+            isSunrise && !duhaHm && 'opacity-30',
           )}
+          style={timeStyle}
         >
-          {row.key === 'sunrise' ? '—' : fmtTimeShort(row.iqamah)}
+          {isSunrise ? (duhaHm ? fmtTimeShort(duhaHm) : '—') : fmtTimeShort(row.iqamah)}
         </span>
       </div>
     </div>
@@ -155,7 +201,10 @@ function PrayerCell({
 
 function JumuahRow({ label, time }: { label: string; time?: string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-theme-border/5 px-3 py-[0.4vh] leading-tight text-[min(2vh,1.4vw)]">
+    <div
+      className="flex items-center justify-between rounded-lg bg-theme-border/5 px-3 py-[0.4vh] leading-tight"
+      style={{ fontSize: 'calc(min(2vh, 1.4vw) * var(--scale-jumuah, 1))' }}
+    >
       <div className="font-medium text-theme-text/90">{label}</div>
       <div className="font-mono tabular-nums font-semibold text-theme-text">
         {fmtTimeShort(time)}

@@ -54,7 +54,7 @@ export default function SidebarBottom(p: DisplayProps) {
 
   return (
     <div ref={rootRef} className="relative flex h-full w-full select-none flex-col">
-      <div className="relative flex-1">
+      <div className="relative flex-1 [container-type:size]">
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
         <CountdownOverlay
@@ -62,12 +62,15 @@ export default function SidebarBottom(p: DisplayProps) {
           prayerLabel={p.countdown.label}
           secondsRemaining={p.countdown.secondsRemaining}
         />
-        {p.settings.sunriseCounterPosition === 'top-banner' && (
+        {(p.settings.sunriseCounterPosition === 'top-banner' ||
+          p.settings.sunriseCounterPosition === 'slide-area') && (
           <SunriseCounter
             show={p.sunrise.active}
             label={p.settings.sunriseCounterLabel}
             secondsRemaining={p.sunrise.secondsRemaining}
-            position="top-banner"
+            totalSeconds={p.sunrise.totalSeconds}
+            endTime={p.sunrise.endTime}
+            position={p.settings.sunriseCounterPosition === 'slide-area' ? 'slide-area' : 'top-banner'}
           />
         )}
       </div>
@@ -109,6 +112,7 @@ export default function SidebarBottom(p: DisplayProps) {
                 show={p.sunrise.active}
                 label={p.settings.sunriseCounterLabel}
                 secondsRemaining={p.sunrise.secondsRemaining}
+                totalSeconds={p.sunrise.totalSeconds}
                 position="sidebar-inline"
               />
             </div>

@@ -48,12 +48,17 @@ export type SettingsShape = {
   dimMinutes: number;               // default 10
   dimOpacity: number;               // 0..1 (default 0.85)
   sunriseCounterMinutes: number;    // default 15
-  sunriseCounterLabel: string;      // default "Ishraq in"
-  sunriseCounterPosition: 'top-banner' | 'sidebar-inline';
+  sunriseCounterLabel: string;      // default "Time for Duha"
+  sunriseCounterPosition: 'slide-area' | 'top-banner' | 'sidebar-inline';
   dailySyncTime: string;            // 'HH:MM', default '03:00'
   adminPinHash: string;             // scrypt hash; empty = unconfigured
   locale: string;                   // 'en' default; for hijri display
   clockSeconds: boolean;            // show seconds
+  // Sidebar-right font scale knobs (1 = baseline; range ~0.6..1.6).
+  fontScalePrayer: number;
+  fontScaleClock: number;
+  fontScaleJumuah: number;
+  fontScaleNextPrayer: number;
 };
 
 export const DEFAULT_SETTINGS: SettingsShape = {
@@ -70,12 +75,16 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   dimMinutes: 10,
   dimOpacity: 0.85,
   sunriseCounterMinutes: 15,
-  sunriseCounterLabel: 'Ishraq in',
-  sunriseCounterPosition: 'top-banner',
+  sunriseCounterLabel: 'Time for Duha',
+  sunriseCounterPosition: 'slide-area',
   dailySyncTime: '03:00',
   adminPinHash: '',
   locale: 'en',
   clockSeconds: true,
+  fontScalePrayer: 1,
+  fontScaleClock: 1,
+  fontScaleJumuah: 1,
+  fontScaleNextPrayer: 1,
 };
 
 const getStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
@@ -168,3 +177,16 @@ export function isSessionValid(id: string): boolean {
 export function destroySession(id: string) {
   sessionDelete.run(id);
 }
+
+// One-time migration: rename the old default sunrise label to the new "Duha" wording.
+// Idempotent — only runs once per install.
+(function migrateSunriseLabelToDuha() {
+  const KEY = 'migration:rename-ishraq-to-duha';
+  const done = getStmt.get(KEY) as { value: string } | undefined;
+  if (done) return;
+  const cur = getSettings();
+  if (cur.sunriseCounterLabel === 'Ishraq in') {
+    saveSettings({ sunriseCounterLabel: 'Time for Duha' });
+  }
+  setStmt.run(KEY, '1');
+})();

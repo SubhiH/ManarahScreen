@@ -68,7 +68,7 @@ export default function TopBar(p: DisplayProps) {
         <NextPrayerTicker now={p.now} action={p.nextAction} variant="pill" />
       </header>
 
-      <div className="relative flex-1">
+      <div className="relative flex-1 [container-type:size]">
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
         <CountdownOverlay
@@ -80,6 +80,8 @@ export default function TopBar(p: DisplayProps) {
           show={p.sunrise.active}
           label={p.settings.sunriseCounterLabel}
           secondsRemaining={p.sunrise.secondsRemaining}
+          totalSeconds={p.sunrise.totalSeconds}
+          endTime={p.sunrise.endTime}
           position={p.settings.sunriseCounterPosition}
         />
       </div>

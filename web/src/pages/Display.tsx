@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { DateTime } from 'luxon';
 import { api } from '@/lib/api';
 import { useNow } from '@/hooks/useNow';
-import { parseTodayHm } from '@/lib/time';
+import { fmtTimeShort, parseTodayHm } from '@/lib/time';
 import {
   findCurrentPrayer,
   findIqamahJustPassed,
@@ -76,6 +76,9 @@ export default function Display() {
   const sunriseRemaining = sunriseAt
     ? sunriseWindowSec - Math.floor(now.diff(sunriseAt).as('seconds'))
     : 0;
+  const sunriseEndTime = sunriseAt
+    ? fmtTimeShort(sunriseAt.plus({ minutes: s.sunriseCounterMinutes }).toFormat('HH:mm'))
+    : undefined;
 
   const iqamahJust = findIqamahJustPassed(rows, tz, now, s.dimMinutes * 60);
   const nextAction = findNextAction(rows, tz, now);
@@ -103,6 +106,8 @@ export default function Display() {
     sunrise: test?.sunrise ?? {
       active: sunriseActive,
       secondsRemaining: Math.max(0, sunriseRemaining),
+      totalSeconds: sunriseWindowSec,
+      endTime: sunriseEndTime,
     },
     dim: test?.dim ?? { active: !!iqamahJust },
     nextAction,
@@ -152,8 +157,14 @@ function applyTestMode(
     // Cap preview at 60s so you don't wait the full configured window.
     const total = Math.min(60, sunriseTotalSec);
     const remaining = Math.max(0, total - elapsed);
+    const endHm = DateTime.now().plus({ seconds: remaining });
     return {
-      sunrise: { active: remaining > 0, secondsRemaining: remaining },
+      sunrise: {
+        active: remaining > 0,
+        secondsRemaining: remaining,
+        totalSeconds: total,
+        endTime: endHm.toFormat('h:mm a'),
+      },
     };
   }
   if (mode === 'dim') {
