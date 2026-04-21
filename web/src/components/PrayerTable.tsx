@@ -53,8 +53,9 @@ export default function PrayerTable({
         <span className="text-center">Iqama</span>
       </div>
 
-      {/* Rows take all remaining space; each row gets an equal share via flex-1 */}
-      <div className="flex min-h-0 flex-1 flex-col gap-[0.4vh] px-2">
+      {/* Rows take all remaining space; each row gets an equal share via flex-1.
+          container-type: size lets per-row text scale to this area's actual height (cqh). */}
+      <div className="flex min-h-0 flex-1 flex-col gap-[0.4vh] px-2 [container-type:size]">
         {visible.map((r) => (
           <PrayerRowVertical
             key={r.key}
@@ -89,27 +90,28 @@ function PrayerRowVertical({
   return (
     <div
       className={cn(
-        // flex-1 + min-h-0 makes each row take an equal share of the list's height
-        'flex min-h-0 flex-1 flex-col justify-center gap-[0.2vh] overflow-hidden rounded-lg border border-transparent px-3 py-[0.4vh] transition-colors',
+        // flex-1 + min-h-0 makes each row take an equal share of the list's height.
+        // Font sizes use cqh (rows-area height %) so they scale per row without overflowing.
+        'flex min-h-0 flex-1 flex-col justify-center gap-[0.5cqh] rounded-lg border border-transparent px-3 py-[0.5cqh] transition-colors',
         highlight === 'current' &&
           'border-theme-accent/40 bg-theme-accent/10 text-theme-accent shadow-[0_0_30px_-10px_rgb(var(--t-accent-rgb)/0.6)]',
         highlight === 'next' && 'border-theme-next/30 bg-theme-next/10 text-theme-next',
         highlight === 'none' && 'text-theme-text hover:bg-theme-border/5',
       )}
     >
-      <div className="flex items-center gap-2 font-semibold uppercase leading-tight tracking-wide text-[min(2.2vh,1.5vw)]">
+      <div className="flex items-center gap-2 font-semibold uppercase leading-none tracking-wide text-[min(4cqh,4.5cqw)]">
         {highlight === 'current' && (
-          <span className="h-2 w-2 animate-ping rounded-full bg-theme-accent" />
+          <span className="h-2 w-2 shrink-0 animate-ping rounded-full bg-theme-accent" />
         )}
-        {row.label}
+        <span className="truncate">{row.label}</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <span className="text-center font-mono leading-none tabular-nums opacity-85 text-[min(3.4vh,2.2vw)]">
+        <span className="text-center font-mono leading-none tabular-nums opacity-85 text-[min(7cqh,8cqw)]">
           {fmtTimeShort(row.adhan)}
         </span>
         <span
           className={cn(
-            'text-center font-mono font-bold leading-none tabular-nums text-[min(3.4vh,2.2vw)]',
+            'text-center font-mono font-bold leading-none tabular-nums text-[min(7cqh,8cqw)]',
             row.key === 'sunrise' && 'opacity-30',
           )}
         >
