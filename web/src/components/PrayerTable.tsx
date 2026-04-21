@@ -48,7 +48,7 @@ export default function PrayerTable({
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
       {/* Column header — aligned with each row's two time columns */}
-      <div className="mx-2 shrink-0 grid grid-cols-2 gap-2 px-3 pb-[0.4vh] text-[min(1.1vh,0.9vw)] uppercase tracking-[0.25em] text-theme-text-dim">
+      <div className="mx-2 shrink-0 grid grid-cols-2 gap-2 px-3 pb-[0.4vh] text-[min(1.5vh,1.1vw)] uppercase tracking-[0.25em] text-theme-text-dim">
         <span className="text-center">Adhan</span>
         <span className="text-center">Iqama</span>
       </div>
@@ -66,7 +66,7 @@ export default function PrayerTable({
 
       {/* Jumu'ah strip — natural height, sized with vh so it scales with monitor */}
       <div className="mx-2 shrink-0 border-t border-theme-border/10 pt-[0.8vh]">
-        <div className="mb-[0.4vh] text-[min(1vh,0.85vw)] uppercase tracking-widest text-theme-text-dim">
+        <div className="mb-[0.4vh] text-[min(1.4vh,1vw)] uppercase tracking-widest text-theme-text-dim">
           Jumu'ah
         </div>
         <div className="flex flex-col gap-[0.3vh] pb-[0.4vh]">
@@ -90,26 +90,26 @@ function PrayerRowVertical({
     <div
       className={cn(
         // flex-1 + min-h-0 makes each row take an equal share of the list's height
-        'flex min-h-0 flex-1 flex-col justify-center gap-[0.2vh] rounded-lg border border-transparent px-3 py-[0.5vh] transition-colors',
+        'flex min-h-0 flex-1 flex-col justify-center gap-[0.2vh] overflow-hidden rounded-lg border border-transparent px-3 py-[0.4vh] transition-colors',
         highlight === 'current' &&
           'border-theme-accent/40 bg-theme-accent/10 text-theme-accent shadow-[0_0_30px_-10px_rgb(var(--t-accent-rgb)/0.6)]',
         highlight === 'next' && 'border-theme-next/30 bg-theme-next/10 text-theme-next',
         highlight === 'none' && 'text-theme-text hover:bg-theme-border/5',
       )}
     >
-      <div className="flex items-center gap-2 font-semibold uppercase tracking-wide text-[min(1.8vh,1.2vw)]">
+      <div className="flex items-center gap-2 font-semibold uppercase leading-tight tracking-wide text-[min(2.2vh,1.5vw)]">
         {highlight === 'current' && (
           <span className="h-2 w-2 animate-ping rounded-full bg-theme-accent" />
         )}
         {row.label}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <span className="text-center font-mono tabular-nums opacity-85 text-[min(2.6vh,1.7vw)]">
+        <span className="text-center font-mono leading-none tabular-nums opacity-85 text-[min(3.4vh,2.2vw)]">
           {fmtTimeShort(row.adhan)}
         </span>
         <span
           className={cn(
-            'text-center font-mono font-bold tabular-nums text-[min(2.6vh,1.7vw)]',
+            'text-center font-mono font-bold leading-none tabular-nums text-[min(3.4vh,2.2vw)]',
             row.key === 'sunrise' && 'opacity-30',
           )}
         >
@@ -153,7 +153,7 @@ function PrayerCell({
 
 function JumuahRow({ label, time }: { label: string; time?: string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-theme-border/5 px-3 py-[0.4vh] text-[min(1.8vh,1.2vw)]">
+    <div className="flex items-center justify-between rounded-lg bg-theme-border/5 px-3 py-[0.4vh] leading-tight text-[min(2vh,1.4vw)]">
       <div className="font-medium text-theme-text/90">{label}</div>
       <div className="font-mono tabular-nums font-semibold text-theme-text">
         {fmtTimeShort(time)}
