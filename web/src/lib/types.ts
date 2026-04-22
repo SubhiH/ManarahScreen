@@ -1,4 +1,4 @@
-export type LayoutName = 'sidebar-right' | 'sidebar-bottom' | 'top-bar';
+export type LayoutName = 'sidebar-right' | 'sidebar-bottom' | 'top-bar' | 'flyer-board';
 export type ThemeName =
   | 'midnight'
   | 'forest'

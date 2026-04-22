@@ -39,7 +39,7 @@ export type SettingsShape = {
   masjidalPassword: string;
   masjidId: string;
   timezone: string;
-  layout: 'sidebar-right' | 'sidebar-bottom' | 'top-bar';
+  layout: 'sidebar-right' | 'sidebar-bottom' | 'top-bar' | 'flyer-board';
   theme: 'midnight' | 'forest' | 'royal' | 'navy' | 'graphite' | 'cream' | 'parchment';
   sidebarPercent: number;           // 20..50 for sidebar layouts
   showSunrise: boolean;

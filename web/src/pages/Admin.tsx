@@ -311,22 +311,25 @@ function LayoutTab({ s, save }: { s: SettingsState; save: SaveFn }) {
     <Card title="Display layout">
       <Field label="Layout style">
         <div className="flex flex-wrap gap-2">
-          {(['sidebar-right', 'sidebar-bottom', 'top-bar'] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => save({ layout: k })}
-              className={cn(
-                'rounded-md border px-4 py-2 text-sm',
-                s.layout === k
-                  ? 'border-theme-accent bg-theme-accent/10 text-theme-accent'
-                  : 'border-theme-border/10 text-theme-text/90 hover:bg-theme-border/5',
-              )}
-            >
-              {k === 'sidebar-right' && 'Sidebar (right)'}
-              {k === 'sidebar-bottom' && 'Sidebar (bottom)'}
-              {k === 'top-bar' && 'Top bar'}
-            </button>
-          ))}
+          {(['sidebar-right', 'sidebar-bottom', 'top-bar', 'flyer-board'] as const).map(
+            (k) => (
+              <button
+                key={k}
+                onClick={() => save({ layout: k })}
+                className={cn(
+                  'rounded-md border px-4 py-2 text-sm',
+                  s.layout === k
+                    ? 'border-theme-accent bg-theme-accent/10 text-theme-accent'
+                    : 'border-theme-border/10 text-theme-text/90 hover:bg-theme-border/5',
+                )}
+              >
+                {k === 'sidebar-right' && 'Sidebar (right)'}
+                {k === 'sidebar-bottom' && 'Sidebar (bottom)'}
+                {k === 'top-bar' && 'Top bar'}
+                {k === 'flyer-board' && 'Flyer board (1920×1080)'}
+              </button>
+            ),
+          )}
         </div>
       </Field>
       <Field

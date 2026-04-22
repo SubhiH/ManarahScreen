@@ -16,6 +16,7 @@ import {
 import SidebarRight from '@/layouts/SidebarRight';
 import SidebarBottom from '@/layouts/SidebarBottom';
 import TopBar from '@/layouts/TopBar';
+import FlyerBoard from '@/layouts/FlyerBoard';
 import type { DisplayProps } from '@/layouts/types';
 
 export default function Display() {
@@ -118,6 +119,8 @@ export default function Display() {
       <SidebarBottom {...props} />
     ) : s.layout === 'top-bar' ? (
       <TopBar {...props} />
+    ) : s.layout === 'flyer-board' ? (
+      <FlyerBoard {...props} />
     ) : (
       <SidebarRight {...props} />
     );
