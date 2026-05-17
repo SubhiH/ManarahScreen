@@ -270,7 +270,12 @@ type MasjidalRawRow = {
   si_start_date?: string;      // 'YYYY-MM-DD' or empty
   si_end_date?: string;
   si_created_at?: number;      // unix seconds
+  si_display?: string;
 };
+
+function isDisplayForScreen(display?: string): boolean {
+  return String(display ?? '').toLowerCase().includes('screen');
+}
 
 /** Is the slide active today according to si_start_date/si_end_date? */
 function isActiveToday(row: MasjidalRawRow, today = new Date()): boolean {
@@ -291,6 +296,7 @@ export async function fetchSlides(): Promise<MasjidalSlide[]> {
   for (const row of list) {
     if (!row || typeof row.si_id !== 'number') continue;
     if (!isActiveToday(row)) continue;
+    if (!isDisplayForScreen(row.si_display)) continue;
 
     // Prefer uploaded image path; fall back to external URL.
     const rawPath = row.si_img_name?.trim() || row.si_url?.trim() || '';
