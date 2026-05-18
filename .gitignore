@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+slides-cache/
+slides/*
+!slides/.gitkeep
+.env
+.DS_Store
+*.log
+masjidal.md
+-H
