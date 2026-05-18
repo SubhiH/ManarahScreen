@@ -59,6 +59,7 @@ export type SettingsShape = {
   fontScaleClock: number;
   fontScaleJumuah: number;
   fontScaleNextPrayer: number;
+  liveMode: boolean;                // when true, slide area shows live camera feed
 };
 
 export const DEFAULT_SETTINGS: SettingsShape = {
@@ -85,6 +86,7 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   fontScaleClock: 1,
   fontScaleJumuah: 1,
   fontScaleNextPrayer: 1,
+  liveMode: false,
 };
 
 const getStmt = db.prepare('SELECT value FROM settings WHERE key = ?');

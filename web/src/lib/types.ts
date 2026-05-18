@@ -29,7 +29,9 @@ export type PublicSettings = {
   fontScaleClock: number;
   fontScaleJumuah: number;
   fontScaleNextPrayer: number;
+  liveMode: boolean;
   masjidalConfigured: boolean;
+  liveCameraLabel: string;
 };
 
 export type UnifiedSlide = {

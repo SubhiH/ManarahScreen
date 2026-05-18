@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
@@ -42,14 +43,18 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.get('/api/settings/public', (_req, res) => {
   const s = getSettings();
   const { masjidalEmail, masjidalPassword, adminPinHash, ...publicBits } = s;
-  res.json({ ...publicBits, masjidalConfigured: !!masjidalEmail && !!masjidalPassword });
+  res.json({
+    ...publicBits,
+    masjidalConfigured: !!masjidalEmail && !!masjidalPassword,
+    liveCameraLabel: process.env.LIVE_CAMERA_LABEL ?? '',
+  });
 });
 
 // Cosmetic settings writable without PIN (LAN-trusted device).
 // Whitelist only visual-layout fields the display lets the user drag/adjust.
 app.put('/api/settings/cosmetic', (req, res) => {
   const patch: Partial<SettingsShape> = {};
-  const { sidebarPercent } = req.body ?? {};
+  const { sidebarPercent, liveMode } = req.body ?? {};
   if (sidebarPercent !== undefined) {
     const n = Number(sidebarPercent);
     if (!Number.isFinite(n) || n < 15 || n > 55) {
@@ -57,6 +62,9 @@ app.put('/api/settings/cosmetic', (req, res) => {
       return;
     }
     patch.sidebarPercent = Math.round(n);
+  }
+  if (liveMode !== undefined) {
+    patch.liveMode = !!liveMode;
   }
   if (Object.keys(patch).length === 0) {
     res.status(400).json({ error: 'no writable fields provided' });

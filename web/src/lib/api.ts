@@ -14,8 +14,8 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   publicSettings: () => j<PublicSettings>('/api/settings/public'),
-  cosmeticSettings: (patch: { sidebarPercent?: number }) =>
-    j<{ sidebarPercent?: number }>('/api/settings/cosmetic', {
+  cosmeticSettings: (patch: { sidebarPercent?: number; liveMode?: boolean }) =>
+    j<{ sidebarPercent?: number; liveMode?: boolean }>('/api/settings/cosmetic', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),

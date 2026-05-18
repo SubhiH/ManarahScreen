@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Display from '@/pages/Display';
 import Admin from '@/pages/Admin';
+import Live from '@/pages/Live';
 import ThemeApplier from '@/components/ThemeApplier';
 import './index.css';
 
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<Display />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/live" element={<Live />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

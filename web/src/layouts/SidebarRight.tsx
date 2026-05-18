@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import Clock from '@/components/Clock';
 import PrayerTable from '@/components/PrayerTable';
 import SlideCarousel from '@/components/SlideCarousel';
+import LiveStream from '@/components/LiveStream';
+import LiveToggle from '@/components/LiveToggle';
 import DimOverlay from '@/components/DimOverlay';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import SunriseCounter from '@/components/SunriseCounter';
@@ -58,7 +60,12 @@ export default function SidebarRight(p: DisplayProps) {
   return (
     <div ref={rootRef} className="relative flex h-full w-full select-none">
       <div className="relative flex-1 [container-type:size]">
-        <SlideCarousel slides={p.slides} />
+        {p.settings.liveMode ? (
+          <LiveStream cameraLabel={p.settings.liveCameraLabel} />
+        ) : (
+          <SlideCarousel slides={p.slides} />
+        )}
+        <LiveToggle active={p.settings.liveMode} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
         <CountdownOverlay
           show={p.countdown.active}

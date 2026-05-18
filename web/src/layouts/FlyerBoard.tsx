@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DateTime } from 'luxon';
 import SlideCarousel from '@/components/SlideCarousel';
+import LiveStream from '@/components/LiveStream';
+import LiveToggle from '@/components/LiveToggle';
 import DimOverlay from '@/components/DimOverlay';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import SunriseCounter from '@/components/SunriseCounter';
@@ -101,7 +103,12 @@ export default function FlyerBoard(p: DisplayProps) {
     >
       {/* SLIDE AREA (top-left) */}
       <div className="relative overflow-hidden bg-black [container-type:size]">
-        <SlideCarousel slides={p.slides} />
+        {p.settings.liveMode ? (
+          <LiveStream cameraLabel={p.settings.liveCameraLabel} />
+        ) : (
+          <SlideCarousel slides={p.slides} />
+        )}
+        <LiveToggle active={p.settings.liveMode} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
         <CountdownOverlay
           show={p.countdown.active}
