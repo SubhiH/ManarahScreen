@@ -1,13 +1,14 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { cacheWrite, getSettings } from './db';
 import { fetchPrayerTimesForToday } from './masjidal';
-import { refreshMasjidalSlides } from './slides';
+import { refreshConfiguredSlides, refreshDuaSlide } from './slides';
 
 export type SyncResult = {
   ok: boolean;
   at: number;
   prayerTimes: 'ok' | string;
   slides: 'ok' | string;
+  dua: 'disabled' | 'cached' | 'refreshed' | string;
   slideCount?: number;
   slideErrors?: string[];
 };
@@ -20,23 +21,28 @@ export function getLastSync(): SyncResult | null {
 
 export async function runSync(): Promise<SyncResult> {
   const at = Date.now();
+  const settings = getSettings();
   let prayerOk = true;
   let prayerErr: string | undefined;
   let slideCount: number | undefined;
   let slideErrors: string[] = [];
   let slideOk = true;
   let slideErr: string | undefined;
+  let duaOk = true;
+  let duaStatus: SyncResult['dua'] = 'disabled';
 
-  try {
-    const pt = await fetchPrayerTimesForToday();
-    cacheWrite('prayer:today', { data: pt, fetchedAt: at });
-  } catch (e) {
-    prayerOk = false;
-    prayerErr = e instanceof Error ? e.message : String(e);
+  if (settings.prayerTimesSource === 'masjidal') {
+    try {
+      const pt = await fetchPrayerTimesForToday();
+      cacheWrite('prayer:today', { data: pt, fetchedAt: at });
+    } catch (e) {
+      prayerOk = false;
+      prayerErr = e instanceof Error ? e.message : String(e);
+    }
   }
 
   try {
-    const r = await refreshMasjidalSlides();
+    const r = await refreshConfiguredSlides();
     slideCount = r.count;
     slideErrors = r.errors;
   } catch (e) {
@@ -44,11 +50,30 @@ export async function runSync(): Promise<SyncResult> {
     slideErr = e instanceof Error ? e.message : String(e);
   }
 
+  try {
+    const result = await refreshDuaSlide();
+    duaStatus = result.status;
+  } catch (e) {
+    duaOk = false;
+    duaStatus = e instanceof Error ? e.message : String(e);
+  }
+
   const res: SyncResult = {
-    ok: prayerOk && slideOk,
+    ok: prayerOk && slideOk && duaOk,
     at,
-    prayerTimes: prayerOk ? 'ok' : prayerErr ?? 'error',
-    slides: slideOk ? 'ok' : slideErr ?? 'error',
+    prayerTimes:
+      settings.prayerTimesSource === 'disabled'
+        ? 'disabled'
+        : prayerOk
+          ? 'ok'
+          : prayerErr ?? 'error',
+    slides:
+      settings.slidesSource === 'disabled'
+        ? 'disabled'
+        : slideOk
+          ? 'ok'
+          : slideErr ?? 'error',
+    dua: duaStatus,
     slideCount,
     slideErrors,
   };

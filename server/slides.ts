@@ -1,8 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import chokidar from 'chokidar';
-import { allSlideStates, cacheRead, cacheWrite, getSlideState, upsertSlideState } from './db';
-import { fetchSlides, MasjidalSlide } from './masjidal';
+import {
+  allSlideStates,
+  cacheRead,
+  cacheWrite,
+  getSettings,
+  getSlideState,
+  upsertSlideState,
+} from './db';
+import { DuaContent, fetchRandomDua, isDuaCacheFresh } from './dua';
+import { fetchSlides } from './masjidal';
+import { fetchPublicSlidesFromUrl, PublicApiSlide } from './public-slides';
 
 const ROOT = path.resolve(__dirname, '..');
 const LOCAL_SLIDES_DIR = path.join(ROOT, 'slides');
@@ -14,14 +23,15 @@ if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
 export type UnifiedSlide = {
   id: string;
-  source: 'masjidal' | 'local';
+  source: 'masjidal' | 'custom-api' | 'local' | 'dua';
   name: string;
   url: string;            // served to frontend
-  originalUrl?: string;   // upstream (masjidal) source, for debugging
+  originalUrl?: string;   // upstream source, for debugging
   enabled: boolean;
   sortOrder: number;
   duration: number;       // seconds
-  kind: 'image' | 'video';
+  kind: 'image' | 'video' | 'dua';
+  dua?: DuaContent;
 };
 
 export const LOCAL_SLIDES_ROOT = LOCAL_SLIDES_DIR;
@@ -67,14 +77,14 @@ function localAsSlides(): UnifiedSlide[] {
 
 /* ---------- masjidal (cached) ---------- */
 
-async function downloadCached(slide: MasjidalSlide): Promise<string> {
-  const safeId = slide.id.replace(/[^a-zA-Z0-9:_-]/g, '_');
-  const ext = path.extname(new URL(slide.imageUrl).pathname) || '.jpg';
+async function downloadCachedAsset(id: string, imageUrl: string, force = false): Promise<string> {
+  const safeId = id.replace(/[^a-zA-Z0-9:_-]/g, '_');
+  const ext = path.extname(new URL(imageUrl).pathname) || '.jpg';
   const localName = `${safeId}${ext}`;
   const localPath = path.join(CACHE_DIR, localName);
-  if (fs.existsSync(localPath) && fs.statSync(localPath).size > 0) return localName;
-  const res = await fetch(slide.imageUrl);
-  if (!res.ok) throw new Error(`download failed ${slide.imageUrl}: ${res.status}`);
+  if (!force && fs.existsSync(localPath) && fs.statSync(localPath).size > 0) return localName;
+  const res = await fetch(imageUrl);
+  if (!res.ok) throw new Error(`download failed ${imageUrl}: ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(localPath, buf);
   return localName;
@@ -98,7 +108,7 @@ export async function refreshMasjidalSlides(): Promise<{ count: number; errors: 
   const cached: CachedMasjidal[] = [];
   for (const s of remote) {
     try {
-      const localFile = await downloadCached(s);
+      const localFile = await downloadCachedAsset(s.id, s.imageUrl);
       cached.push({
         id: s.id,
         name: s.name,
@@ -135,10 +145,164 @@ function masjidalAsSlides(): UnifiedSlide[] {
   });
 }
 
+/* ---------- custom public API (cached) ---------- */
+
+const CUSTOM_API_CACHE_KEY = 'slides:custom-api';
+
+type CachedPublicApi = {
+  id: string;
+  name: string;
+  localFile: string;
+  originalUrl: string;
+  kind: 'image' | 'video';
+  defaultDuration: number;
+  defaultSortOrder: number;
+  upstreamUpdatedAt?: string;
+};
+
+function cachedFileExists(localFile: string): boolean {
+  const full = path.join(CACHE_DIR, localFile);
+  return fs.existsSync(full) && fs.statSync(full).size > 0;
+}
+
+function publicApiCacheRow(slide: PublicApiSlide, localFile: string): CachedPublicApi {
+  return {
+    id: slide.id,
+    name: slide.name,
+    localFile,
+    originalUrl: slide.imageUrl,
+    kind: slide.kind,
+    defaultDuration: slide.duration,
+    defaultSortOrder: slide.sortOrder,
+    upstreamUpdatedAt: slide.updatedAt,
+  };
+}
+
+export async function refreshPublicApiSlides(): Promise<{
+  count: number;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  const { customSlidesApiUrl, timezone } = getSettings();
+  const { slides: remote } = await fetchPublicSlidesFromUrl(customSlidesApiUrl, timezone);
+  const previous = cacheRead<CachedPublicApi[]>(CUSTOM_API_CACHE_KEY)?.value ?? [];
+  const previousById = new Map(previous.map((row) => [row.id, row]));
+  const cached: CachedPublicApi[] = [];
+
+  for (const slide of remote) {
+    const old = previousById.get(slide.id);
+    const unchanged =
+      !!old &&
+      old.originalUrl === slide.imageUrl &&
+      old.upstreamUpdatedAt === slide.updatedAt &&
+      cachedFileExists(old.localFile);
+    try {
+      const localFile = unchanged
+        ? old.localFile
+        : await downloadCachedAsset(slide.id, slide.imageUrl, true);
+      cached.push(publicApiCacheRow(slide, localFile));
+    } catch (error) {
+      errors.push(`${slide.name}: ${error instanceof Error ? error.message : String(error)}`);
+      if (old && cachedFileExists(old.localFile)) cached.push(old);
+    }
+  }
+
+  cacheWrite(CUSTOM_API_CACHE_KEY, cached);
+  return { count: cached.length, errors };
+}
+
+function publicApiAsSlides(): UnifiedSlide[] {
+  const cached = cacheRead<CachedPublicApi[]>(CUSTOM_API_CACHE_KEY)?.value ?? [];
+  return cached.map((row) => {
+    const state = getSlideState(row.id);
+    return {
+      id: row.id,
+      source: 'custom-api',
+      name: row.name,
+      url: `/slides-files/cache/${encodeURIComponent(row.localFile)}`,
+      originalUrl: row.originalUrl,
+      enabled: state ? !!state.enabled : true,
+      sortOrder: state ? state.sort_order : row.defaultSortOrder,
+      duration: state ? state.duration : row.defaultDuration,
+      kind: row.kind,
+    };
+  });
+}
+
+export async function refreshConfiguredSlides(): Promise<{
+  count: number;
+  errors: string[];
+  source: 'masjidal' | 'custom-api' | 'disabled';
+}> {
+  const { slidesSource } = getSettings();
+  if (slidesSource === 'disabled') return { count: 0, errors: [], source: slidesSource };
+  const result =
+    slidesSource === 'custom-api'
+      ? await refreshPublicApiSlides()
+      : await refreshMasjidalSlides();
+  return { ...result, source: slidesSource };
+}
+
+/* ---------- generated Dua slide (cached) ---------- */
+
+const DUA_CACHE_KEY = 'dua:current';
+const DUA_SLIDE_ID = 'dua:current';
+
+type CachedDua = {
+  dua: DuaContent;
+};
+
+export type DuaRefreshResult = {
+  status: 'disabled' | 'cached' | 'refreshed';
+  cachedAt?: number;
+};
+
+export async function refreshDuaSlide(): Promise<DuaRefreshResult> {
+  const { duaSlideEnabled, duaCacheDays } = getSettings();
+  if (!duaSlideEnabled) return { status: 'disabled' };
+
+  const cached = cacheRead<CachedDua>(DUA_CACHE_KEY);
+  if (cached && isDuaCacheFresh(cached.updatedAt, duaCacheDays)) {
+    return { status: 'cached', cachedAt: cached.updatedAt };
+  }
+
+  const dua = await fetchRandomDua();
+  cacheWrite(DUA_CACHE_KEY, { dua });
+  return { status: 'refreshed', cachedAt: Date.now() };
+}
+
+function duaAsSlides(): UnifiedSlide[] {
+  if (!getSettings().duaSlideEnabled) return [];
+  const cached = cacheRead<CachedDua>(DUA_CACHE_KEY);
+  if (!cached) return [];
+
+  const state = getSlideState(DUA_SLIDE_ID);
+  return [
+    {
+      id: DUA_SLIDE_ID,
+      source: 'dua',
+      name: `Dua · ${cached.value.dua.title}`,
+      url: '',
+      enabled: true,
+      sortOrder: state ? state.sort_order : 900,
+      duration: state ? state.duration : 22,
+      kind: 'dua',
+      dua: cached.value.dua,
+    },
+  ];
+}
+
 /* ---------- merged ---------- */
 
 export function listSlides(): UnifiedSlide[] {
-  const all = [...masjidalAsSlides(), ...localAsSlides()];
+  const { slidesSource } = getSettings();
+  const remote =
+    slidesSource === 'custom-api'
+      ? publicApiAsSlides()
+      : slidesSource === 'masjidal'
+        ? masjidalAsSlides()
+        : [];
+  const all = [...remote, ...duaAsSlides(), ...localAsSlides()];
   all.sort((a, b) => a.sortOrder - b.sortOrder);
   return all;
 }

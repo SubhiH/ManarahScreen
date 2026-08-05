@@ -20,6 +20,7 @@ import {
   verifyPin,
 } from './auth';
 import { fetchIqamaTimingsRaw, fetchPrayerTimesRaw, fetchSlidesRaw, testLogin } from './masjidal';
+import { fetchPublicSlidesFromUrl, validatePublicSlidesApiUrl } from './public-slides';
 import {
   LOCAL_SLIDES_ROOT,
   SLIDE_CACHE_ROOT,
@@ -75,6 +76,10 @@ app.put('/api/settings/cosmetic', (req, res) => {
 });
 
 app.get('/api/prayer-times/today', (_req, res) => {
+  if (getSettings().prayerTimesSource === 'disabled') {
+    res.status(404).json({ error: 'prayer times are disabled' });
+    return;
+  }
   const c = cacheRead<{ data: unknown; fetchedAt: number }>('prayer:today');
   if (!c) {
     res.status(404).json({ error: 'no cached prayer times yet — run sync' });
@@ -169,6 +174,45 @@ app.put('/api/admin/settings', requireAdmin, (req, res) => {
   const body = req.body as Partial<SettingsShape>;
   // Never allow directly writing the PIN hash via this endpoint.
   if ('adminPinHash' in body) delete (body as Record<string, unknown>).adminPinHash;
+  if (
+    body.prayerTimesSource !== undefined &&
+    !['masjidal', 'disabled'].includes(body.prayerTimesSource)
+  ) {
+    res.status(400).json({ error: 'invalid prayerTimesSource' });
+    return;
+  }
+  if (
+    body.slidesSource !== undefined &&
+    !['masjidal', 'custom-api', 'disabled'].includes(body.slidesSource)
+  ) {
+    res.status(400).json({ error: 'invalid slidesSource' });
+    return;
+  }
+  if (body.customSlidesApiUrl !== undefined) {
+    if (typeof body.customSlidesApiUrl !== 'string') {
+      res.status(400).json({ error: 'customSlidesApiUrl must be a string' });
+      return;
+    }
+    const trimmed = body.customSlidesApiUrl.trim();
+    try {
+      body.customSlidesApiUrl = trimmed ? validatePublicSlidesApiUrl(trimmed) : '';
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+  }
+  if (body.duaSlideEnabled !== undefined && typeof body.duaSlideEnabled !== 'boolean') {
+    res.status(400).json({ error: 'duaSlideEnabled must be a boolean' });
+    return;
+  }
+  if (body.duaCacheDays !== undefined) {
+    const days = Number(body.duaCacheDays);
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      res.status(400).json({ error: 'duaCacheDays must be an integer from 1 to 365' });
+      return;
+    }
+    body.duaCacheDays = days;
+  }
   const next = saveSettings(body);
   scheduleDailySync(); // cron may need to be re-registered if dailySyncTime changed
   const { adminPinHash, ...safe } = next;
@@ -191,6 +235,20 @@ app.post('/api/admin/change-pin', requireAdmin, (req, res) => {
 app.post('/api/admin/test-login', requireAdmin, async (_req, res) => {
   const result = await testLogin();
   res.json(result);
+});
+
+app.post('/api/admin/test-custom-slides-api', requireAdmin, async (req, res) => {
+  try {
+    const url = String(req.body?.url ?? getSettings().customSlidesApiUrl);
+    const result = await fetchPublicSlidesFromUrl(url, getSettings().timezone);
+    res.json({
+      ok: true,
+      totalCount: result.totalCount,
+      screenCount: result.slides.length,
+    });
+  } catch (error) {
+    res.json({ ok: false, error: error instanceof Error ? error.message : String(error) });
+  }
 });
 
 app.get('/api/admin/debug/slides-raw', requireAdmin, async (_req, res) => {
@@ -307,7 +365,13 @@ if (WEB_DIST) {
 app.listen(PORT, () => {
   console.log(`[manarah-screen] listening on http://localhost:${PORT}`);
   scheduleDailySync();
-  if (adminConfigured() && getSettings().masjidalEmail) {
+  const settings = getSettings();
+  const hasConfiguredSource =
+    ((settings.prayerTimesSource === 'masjidal' || settings.slidesSource === 'masjidal') &&
+      !!settings.masjidalEmail) ||
+    (settings.slidesSource === 'custom-api' && !!settings.customSlidesApiUrl) ||
+    settings.duaSlideEnabled;
+  if (adminConfigured() && hasConfiguredSource) {
     runSync().catch((e) => console.error('[sync] startup run failed', e));
   }
 });

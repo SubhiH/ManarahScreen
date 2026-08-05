@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { UnifiedSlide } from '@/lib/types';
 import { cn } from '@/lib/cn';
+import DuaSlide from './DuaSlide';
 
 type Props = {
   slides: UnifiedSlide[];
@@ -49,7 +50,9 @@ export default function SlideCarousel({ slides, className }: Props) {
           transition={{ duration: 0.9, ease: 'easeOut' }}
           className="absolute inset-0"
         >
-          {current.kind === 'video' ? (
+          {current.kind === 'dua' && current.dua ? (
+            <DuaSlide dua={current.dua} />
+          ) : current.kind === 'video' ? (
             <video
               key={current.id}
               src={current.url}

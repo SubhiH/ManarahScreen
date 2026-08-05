@@ -62,19 +62,35 @@ export const api = {
     }),
   adminTestLogin: () =>
     j<{ ok: boolean; error?: string }>('/api/admin/test-login', { method: 'POST' }),
+  adminTestCustomSlidesApi: (url: string) =>
+    j<{ ok: boolean; totalCount?: number; screenCount?: number; error?: string }>(
+      '/api/admin/test-custom-slides-api',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      },
+    ),
   adminSyncNow: () =>
     j<{
       ok: boolean;
       at: number;
       prayerTimes: string;
       slides: string;
+      dua: string;
       slideCount?: number;
       slideErrors?: string[];
     }>('/api/admin/sync', { method: 'POST' }),
   adminLastSync: () =>
-    j<{ last: { ok: boolean; at: number; prayerTimes: string; slides: string } | null }>(
-      '/api/admin/sync',
-    ),
+    j<{
+      last: {
+        ok: boolean;
+        at: number;
+        prayerTimes: string;
+        slides: string;
+        dua: string;
+      } | null;
+    }>('/api/admin/sync'),
   adminSlides: () => j<{ slides: UnifiedSlide[] }>('/api/admin/slides'),
   adminUpdateSlide: (
     id: string,

@@ -2,7 +2,7 @@
 
 > **Manarah** (منارة) — "minaret / lighthouse." A guiding display for the masjid.
 
-ManarahScreen is a kiosk web app for masjid monitors. It shows today's prayer times (Adhan + Iqama for the 5 prayers, Sunrise, and Jumu'ahs), a Hijri + Gregorian clock, and a carousel of event slides sourced from both the Masjidal portal library (masjid ID 1501) and a local folder.
+ManarahScreen is a kiosk web app for masjid monitors. It shows today's prayer times (Adhan + Iqama for the 5 prayers, Sunrise, and Jumu'ahs), a Hijri + Gregorian clock, and a carousel of event slides sourced from Masjidal or a custom public API plus a local folder.
 
 ## Features
 
@@ -10,7 +10,9 @@ ManarahScreen is a kiosk web app for masjid monitors. It shows today's prayer ti
 - Full-screen Adhan countdown overlay when the next prayer is ≤1 min away (configurable).
 - Inline post-Sunrise (Ishraq) counter, default 15 min — non-intrusive, never full-screen.
 - Dims the slides only (prayer sidebar stays visible) for 10 min after each Iqama (configurable).
-- Daily sync with Masjidal (Iqama times, slides) plus on-demand sync. Slides cached locally for offline.
+- Independently select Masjidal for prayer times and Masjidal, a custom public API, or neither for remote slides.
+- Optional text-based Dua slide from UmmahAPI with Arabic, transliteration, translation, source, and a configurable multi-day cache.
+- Daily and on-demand sync. Remote slides are cached locally for offline use.
 - Drop image/video files into `slides/` — they appear automatically.
 - PIN-protected `/admin` settings page.
 
@@ -21,7 +23,7 @@ npm install
 npm run dev     # server on :4000, web dev on :5173
 ```
 
-Open http://localhost:5173/admin, set a PIN, enter Masjidal email/password, click **Test login**, then **Sync now**.
+Open http://localhost:5173/admin, set a PIN, configure the prayer and slide data sources, then click **Sync now**.
 Open http://localhost:5173/ for the display view.
 
 ## Production kiosk
@@ -41,5 +43,6 @@ chrome --kiosk http://localhost:4000/
 
 - Prayer times API: `GET /salah-timings/get-salah-by-date/1501/?time_zone=America/New_York` (authenticated).
 - Slides library: `GET /libraries/getAll/1501?...&status=1`.
+- Custom slide feeds use the format documented in [SLIDES_API.md](SLIDES_API.md). Only slides targeted to `Screen` are imported.
 - All credentials are stored in `data/app.db` (sqlite) on the display device — no hard-coded secrets.
 - Masjidal API details are in [masjidal.md](masjidal.md).

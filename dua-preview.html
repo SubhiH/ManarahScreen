@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ManarahScreen · Dua Slide Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 10%, rgba(30, 110, 92, 0.3), transparent 30%),
+          #020b0a;
+      }
+
+      .preview-shell {
+        position: relative;
+        width: min(100vw, calc(100vh * 16 / 9));
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background: #061d1a;
+        color: #fff9e9;
+        box-shadow: 0 35px 100px rgba(0, 0, 0, 0.55);
+      }
+
+      .dua-slide {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(214, 179, 92, 0.17), transparent 32%),
+          radial-gradient(circle at 12% 12%, rgba(39, 134, 112, 0.26), transparent 28%),
+          radial-gradient(circle at 88% 90%, rgba(147, 101, 45, 0.2), transparent 30%),
+          linear-gradient(145deg, #041512 0%, #0a3129 50%, #061b18 100%);
+      }
+
+      .pattern {
+        position: absolute;
+        inset: 0;
+        opacity: 0.16;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160' viewBox='0 0 240 160'%3E%3Cg fill='none' stroke='%23e7c879' stroke-width='1.45' stroke-linejoin='round' stroke-opacity='.55'%3E%3Cg transform='translate(48 40)'%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(45)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(90)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(135)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(180)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(225)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(270)'/%3E%3Cpath d='M0-25C8-19 8-8 0 0C-8-8-8-19 0-25Z' transform='rotate(315)'/%3E%3Ccircle r='5'/%3E%3C/g%3E%3Cg transform='translate(168 40)'%3E%3Cpath d='M0-25L7-10L22-15L13 0L22 15L7 10L0 25L-7 10L-22 15L-13 0L-22-15L-7-10Z'/%3E%3Crect x='-13' y='-13' width='26' height='26' transform='rotate(45)'/%3E%3Ccircle r='4'/%3E%3C/g%3E%3Cg transform='translate(108 120)'%3E%3Cpath d='M0-25L7-10L22-15L13 0L22 15L7 10L0 25L-7 10L-22 15L-13 0L-22-15L-7-10Z'/%3E%3Crect x='-13' y='-13' width='26' height='26' transform='rotate(45)'/%3E%3Ccircle r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-size: 240px 160px;
+        animation: pattern-drift 80s linear infinite;
+        pointer-events: none;
+        will-change: background-position;
+      }
+
+      @keyframes pattern-drift {
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: 240px 160px;
+        }
+      }
+
+      .inner-border {
+        position: absolute;
+        inset: clamp(12px, 1.5vw, 28px);
+        border: 1px solid rgba(231, 200, 121, 0.3);
+        border-radius: clamp(18px, 2vw, 38px);
+        pointer-events: none;
+      }
+
+      .corner {
+        position: absolute;
+        width: clamp(70px, 8vw, 150px);
+        height: clamp(70px, 8vw, 150px);
+        rotate: 45deg;
+        border: 1px solid rgba(231, 200, 121, 0.2);
+        border-radius: 22%;
+        pointer-events: none;
+      }
+
+      .corner.top {
+        top: 7%;
+        left: 4%;
+      }
+
+      .corner.bottom {
+        right: 4%;
+        bottom: 7%;
+      }
+
+      .content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        padding: clamp(25px, 4vw, 70px) clamp(32px, 6vw, 120px);
+      }
+
+      header {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .heading {
+        display: flex;
+        align-items: center;
+        gap: clamp(10px, 1vw, 18px);
+      }
+
+      .mark {
+        display: grid;
+        width: clamp(36px, 3vw, 58px);
+        height: clamp(36px, 3vw, 58px);
+        flex: none;
+        place-items: center;
+        border: 1px solid rgba(231, 200, 121, 0.5);
+        border-radius: 50%;
+        background: rgba(231, 200, 121, 0.1);
+        color: #efd58e;
+        font-size: clamp(1rem, 1.5vw, 1.8rem);
+      }
+
+      h1 {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.95);
+        font-size: clamp(1rem, 1.35vw, 1.9rem);
+        line-height: 1.2;
+      }
+
+      .category {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.65);
+        font-size: clamp(0.65rem, 0.75vw, 1rem);
+        letter-spacing: 0.18em;
+        padding: clamp(5px, 0.5vw, 9px) clamp(12px, 1.2vw, 22px);
+        text-transform: uppercase;
+      }
+
+      main {
+        display: flex;
+        width: 100%;
+        max-width: 1500px;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(10px, 1.6vh, 24px);
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .arabic {
+        max-width: 96%;
+        color: #fffaf0;
+        direction: rtl;
+        font-family: Amiri, "Noto Naskh Arabic", "Geeza Pro", serif;
+        font-size: clamp(2rem, 3.2vw, 5.2rem);
+        font-weight: 500;
+        line-height: 1.7;
+        text-shadow: 0 2px 18px rgba(231, 200, 121, 0.12);
+      }
+
+      .divider {
+        display: flex;
+        width: min(430px, 34%);
+        align-items: center;
+        gap: 12px;
+        color: #e7c879;
+        font-size: clamp(0.7rem, 0.9vw, 1.15rem);
+      }
+
+      .divider::before,
+      .divider::after {
+        height: 1px;
+        flex: 1;
+        content: "";
+      }
+
+      .divider::before {
+        background: linear-gradient(90deg, transparent, rgba(231, 200, 121, 0.7));
+      }
+
+      .divider::after {
+        background: linear-gradient(90deg, rgba(231, 200, 121, 0.7), transparent);
+      }
+
+      .transliteration,
+      .translation {
+        font-size: clamp(1rem, 1.4vw, 2rem);
+        line-height: 1.65;
+      }
+
+      .transliteration {
+        max-width: 92%;
+        color: rgba(220, 235, 229, 0.8);
+        font-style: italic;
+      }
+
+      .translation {
+        max-width: 90%;
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
+      }
+
+      footer {
+        display: flex;
+        flex: none;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 20px;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: clamp(0.65rem, 0.75vw, 1rem);
+      }
+
+      .source {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .repeat {
+        border: 1px solid rgba(231, 200, 121, 0.3);
+        border-radius: 999px;
+        background: rgba(231, 200, 121, 0.1);
+        color: #efd58e;
+        font-weight: 700;
+        padding: 4px 12px;
+      }
+
+      .preview-label {
+        position: fixed;
+        right: 14px;
+        bottom: 12px;
+        z-index: 10;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.58);
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        padding: 7px 11px;
+        pointer-events: none;
+        text-transform: uppercase;
+      }
+
+      :fullscreen .preview-label {
+        display: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .pattern {
+          animation: none;
+        }
+      }
+
+      @media (max-aspect-ratio: 4 / 3) {
+        .content {
+          padding-inline: 7vw;
+        }
+
+        .arabic {
+          font-size: clamp(1.35rem, 4.6vw, 3rem);
+        }
+
+        .transliteration,
+        .translation {
+          font-size: clamp(0.72rem, 2vw, 1.1rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="preview-shell" aria-label="Dua slide preview">
+      <article class="dua-slide">
+        <div class="pattern"></div>
+        <div class="inner-border"></div>
+        <div class="corner top"></div>
+        <div class="corner bottom"></div>
+
+        <div class="content">
+          <header>
+            <div class="heading">
+              <div class="mark">۞</div>
+              <div>
+                <h1>Hasbiyallah</h1>
+              </div>
+            </div>
+            <div class="category">Dhikr</div>
+          </header>
+
+          <main>
+            <div class="arabic" lang="ar">
+              حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ
+            </div>
+
+            <div class="divider" aria-hidden="true">◆</div>
+
+            <div class="transliteration">
+              Hasbiyallahu la ilaha illa huwa 'alayhi tawakkaltu wa huwa Rabbul-'Arshil-'Adheem
+            </div>
+
+            <div class="translation">
+              “Allah is sufficient for me. There is no deity worthy of worship except Him. I place
+              my trust in Him and He is the Lord of the Great Throne. Whoever says this seven times
+              morning and evening, Allah will take care of whatever worries him.”
+            </div>
+          </main>
+
+          <footer>
+            <div class="source">
+              <span>Abu Dawud 4:321</span>
+              <span class="repeat">Repeat ×7</span>
+            </div>
+          </footer>
+        </div>
+      </article>
+    </section>
+
+    <div class="preview-label">Double-click for fullscreen</div>
+
+    <script>
+      document.addEventListener('dblclick', async () => {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else {
+          await document.documentElement.requestFullscreen();
+        }
+      });
+    </script>
+  </body>
+</html>

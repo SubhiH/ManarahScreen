@@ -115,9 +115,9 @@ function LoginPin() {
 
 /* ---------- main panel ---------- */
 
-type Tab = 'masjidal' | 'layout' | 'prayer' | 'slides' | 'sync' | 'security';
+type Tab = 'sources' | 'layout' | 'prayer' | 'slides' | 'sync' | 'security';
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'masjidal', label: 'Masjidal' },
+  { key: 'sources', label: 'Data Sources' },
   { key: 'layout', label: 'Layout' },
   { key: 'prayer', label: 'Prayer Display' },
   { key: 'slides', label: 'Slides' },
@@ -127,7 +127,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 function AdminPanel() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<Tab>('masjidal');
+  const [tab, setTab] = useState<Tab>('sources');
   const settingsQ = useQuery({
     queryKey: ['admin-settings'],
     queryFn: () => api.adminGetSettings(),
@@ -186,7 +186,7 @@ function AdminPanel() {
       </nav>
 
       <main className="flex-1 overflow-auto bg-theme-bg p-6">
-        {tab === 'masjidal' && <MasjidalTab s={s} save={save} />}
+        {tab === 'sources' && <SourcesTab s={s} save={save} />}
         {tab === 'layout' && <LayoutTab s={s} save={save} />}
         {tab === 'prayer' && <PrayerTab s={s} save={save} />}
         {tab === 'slides' && <SlidesTab />}
@@ -234,20 +234,151 @@ type SaveFn = (patch: Record<string, unknown>) => void;
 
 /* ---------- tabs ---------- */
 
-function MasjidalTab({ s, save }: { s: SettingsState; save: SaveFn }) {
+function SourcesTab({ s, save }: { s: SettingsState; save: SaveFn }) {
   const [email, setEmail] = useState(s.masjidalEmail);
   const [password, setPassword] = useState(s.masjidalPassword);
   const [masjidId, setMasjidId] = useState(s.masjidId);
   const [tz, setTz] = useState(s.timezone);
+  const [customApiUrl, setCustomApiUrl] = useState(s.customSlidesApiUrl);
+  const [duaCacheDays, setDuaCacheDays] = useState(s.duaCacheDays);
   const [testResult, setTestResult] = useState<string>();
+  const [apiTestResult, setApiTestResult] = useState<string>();
   const testM = useMutation({
     mutationFn: () => api.adminTestLogin(),
     onSuccess: (r) => setTestResult(r.ok ? '✓ Login successful' : `✗ ${r.error}`),
   });
+  const testApiM = useMutation({
+    mutationFn: () => api.adminTestCustomSlidesApi(customApiUrl),
+    onSuccess: (r) =>
+      setApiTestResult(
+        r.ok
+          ? `✓ Connected — ${r.screenCount ?? 0} Screen slides (${r.totalCount ?? 0} total)`
+          : `✗ ${r.error}`,
+      ),
+    onError: (error: Error) => setApiTestResult(`✗ ${error.message}`),
+  });
 
   return (
     <>
+      <Card title="Active data sources">
+        <Field
+          label="Prayer times"
+          hint="Masjidal prayer times can stay enabled even when slides use the custom API."
+        >
+          <select
+            className={inputCls}
+            value={s.prayerTimesSource}
+            onChange={(e) => save({ prayerTimesSource: e.target.value })}
+          >
+            <option value="masjidal">Masjidal</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </Field>
+        <Field
+          label="Remote slides"
+          hint="Local uploaded slides are always available in addition to this remote source."
+        >
+          <select
+            className={inputCls}
+            value={s.slidesSource}
+            onChange={(e) => save({ slidesSource: e.target.value })}
+          >
+            <option value="custom-api">Custom API</option>
+            <option value="masjidal">Masjidal</option>
+            <option value="disabled">Disabled (local slides only)</option>
+          </select>
+        </Field>
+      </Card>
+
+      <Card title="Dua slide">
+        <Field
+          label="Show a generated Dua slide"
+          hint="Uses a random authentic dua from UmmahAPI and keeps it available offline. Run Sync now after enabling it for the first time."
+        >
+          <Toggle
+            value={s.duaSlideEnabled}
+            onChange={(value) => save({ duaSlideEnabled: value })}
+          />
+        </Field>
+        <Field
+          label="Refresh interval (days)"
+          hint="The current dua remains cached until this many full days have passed."
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              className={`${inputCls} w-28`}
+              type="number"
+              min={1}
+              max={365}
+              step={1}
+              value={duaCacheDays}
+              onChange={(e) => setDuaCacheDays(Number(e.target.value))}
+            />
+            <button
+              onClick={() =>
+                save({ duaCacheDays: Math.max(1, Math.min(365, Math.round(duaCacheDays))) })
+              }
+              disabled={!Number.isFinite(duaCacheDays)}
+              className="rounded-md border border-theme-border/10 px-4 py-2 text-sm font-semibold text-theme-text/90 hover:bg-theme-border/5 disabled:opacity-50"
+            >
+              Save interval
+            </button>
+          </div>
+        </Field>
+        <div className="text-xs text-theme-text-dim/70">
+          The generated slide displays Arabic, transliteration, translation, source, and repeat
+          count on an emerald-and-gold background. Its display time and carousel position can be
+          adjusted in the Slides tab after the first sync.
+        </div>
+      </Card>
+
+      <Card title="Custom slides API">
+        <Field
+          label="Public HTTPS API URL"
+          hint="Only enabled slides targeted to Screen and active for today's date are imported."
+        >
+          <input
+            className={inputCls}
+            type="url"
+            placeholder="https://example.org/api/slides/public"
+            value={customApiUrl}
+            onChange={(e) => setCustomApiUrl(e.target.value)}
+          />
+        </Field>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => save({ customSlidesApiUrl: customApiUrl })}
+            className="rounded-md bg-theme-accent px-4 py-2 font-semibold text-theme-accent-contrast hover:brightness-110"
+          >
+            Save API URL
+          </button>
+          <button
+            onClick={() => {
+              setApiTestResult(undefined);
+              testApiM.mutate();
+            }}
+            className="rounded-md border border-theme-border/10 px-4 py-2 text-theme-text/90 hover:bg-theme-border/5 disabled:opacity-50"
+            disabled={testApiM.isPending || !customApiUrl.trim()}
+          >
+            {testApiM.isPending ? 'Testing…' : 'Test API'}
+          </button>
+          {apiTestResult && (
+            <span
+              className={cn(
+                'text-sm',
+                apiTestResult.startsWith('✓') ? 'text-emerald-400' : 'text-red-400',
+              )}
+            >
+              {apiTestResult}
+            </span>
+          )}
+        </div>
+      </Card>
+
       <Card title="Masjidal portal credentials">
+        <div className="text-xs text-theme-text-dim/70">
+          These credentials are only used for the Masjidal sources selected above.
+        </div>
         <Field label="Email">
           <input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
@@ -266,7 +397,10 @@ function MasjidalTab({ s, save }: { s: SettingsState; save: SaveFn }) {
             onChange={(e) => setMasjidId(e.target.value)}
           />
         </Field>
-        <Field label="Timezone" hint="IANA tz, e.g. America/New_York">
+        <Field
+          label="Timezone"
+          hint="IANA tz, e.g. America/New_York. Also used for custom slide start/end dates."
+        >
           <input className={inputCls} value={tz} onChange={(e) => setTz(e.target.value)} />
         </Field>
         <div className="flex items-center gap-3">
@@ -552,8 +686,8 @@ function SyncTab({ s, save }: { s: SettingsState; save: SaveFn }) {
     onSuccess: (r) => {
       setLastMsg(
         r.ok
-          ? `Synced ${r.slideCount ?? 0} slides at ${new Date(r.at).toLocaleString()}`
-          : `Sync had errors — prayer: ${r.prayerTimes}, slides: ${r.slides}`,
+          ? `Synced ${r.slideCount ?? 0} remote slides · Dua: ${r.dua}`
+          : `Sync had errors — prayer: ${r.prayerTimes}, slides: ${r.slides}, dua: ${r.dua}`,
       );
       lastQ.refetch();
     },
@@ -584,6 +718,7 @@ function SyncTab({ s, save }: { s: SettingsState; save: SaveFn }) {
             <div>Last run: {new Date(lastQ.data.last.at).toLocaleString()}</div>
             <div>Prayer times: {lastQ.data.last.prayerTimes}</div>
             <div>Slides: {lastQ.data.last.slides}</div>
+            <div>Dua: {lastQ.data.last.dua}</div>
           </div>
         )}
       </Card>
@@ -658,11 +793,17 @@ function SlidesTab() {
               key={sl.id}
               className="flex items-center gap-3 rounded-lg border border-theme-border/10 bg-theme-bg/60 p-2"
             >
-              <img
-                src={sl.url}
-                alt={sl.name}
-                className="h-16 w-28 rounded object-cover"
-              />
+              {sl.kind === 'dua' ? (
+                <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded bg-gradient-to-br from-emerald-950 via-emerald-800 to-amber-950 font-arabic text-2xl text-amber-200">
+                  دعاء
+                </div>
+              ) : (
+                <img
+                  src={sl.url}
+                  alt={sl.name}
+                  className="h-16 w-28 rounded object-cover"
+                />
+              )}
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-theme-text">{sl.name}</div>
                 <div className="text-xs text-theme-text-dim/70">{sl.source}</div>
@@ -680,10 +821,16 @@ function SlidesTab() {
                   }
                 />
               </label>
-              <Toggle
-                value={sl.enabled}
-                onChange={(v) => toggleM.mutate({ id: sl.id, enabled: v })}
-              />
+              {sl.source === 'dua' ? (
+                <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
+                  Enabled
+                </span>
+              ) : (
+                <Toggle
+                  value={sl.enabled}
+                  onChange={(v) => toggleM.mutate({ id: sl.id, enabled: v })}
+                />
+              )}
               <div className="flex gap-1">
                 <button
                   onClick={() => move(i, -1)}

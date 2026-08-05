@@ -38,6 +38,11 @@ export type SettingsShape = {
   masjidalEmail: string;
   masjidalPassword: string;
   masjidId: string;
+  prayerTimesSource: 'masjidal' | 'disabled';
+  slidesSource: 'masjidal' | 'custom-api' | 'disabled';
+  customSlidesApiUrl: string;
+  duaSlideEnabled: boolean;
+  duaCacheDays: number;
   timezone: string;
   layout: 'sidebar-right' | 'sidebar-bottom' | 'top-bar' | 'flyer-board';
   theme: 'midnight' | 'forest' | 'royal' | 'navy' | 'graphite' | 'cream' | 'parchment';
@@ -66,6 +71,11 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   masjidalEmail: '',
   masjidalPassword: '',
   masjidId: '1501',
+  prayerTimesSource: 'masjidal',
+  slidesSource: 'masjidal',
+  customSlidesApiUrl: '',
+  duaSlideEnabled: false,
+  duaCacheDays: 1,
   timezone: 'America/New_York',
   layout: 'sidebar-right',
   theme: 'midnight',

@@ -10,6 +10,11 @@ export type ThemeName =
 
 export type PublicSettings = {
   masjidId: string;
+  prayerTimesSource: 'masjidal' | 'disabled';
+  slidesSource: 'masjidal' | 'custom-api' | 'disabled';
+  customSlidesApiUrl: string;
+  duaSlideEnabled: boolean;
+  duaCacheDays: number;
   timezone: string;
   layout: LayoutName;
   theme: ThemeName;
@@ -36,14 +41,26 @@ export type PublicSettings = {
 
 export type UnifiedSlide = {
   id: string;
-  source: 'masjidal' | 'local';
+  source: 'masjidal' | 'custom-api' | 'local' | 'dua';
   name: string;
   url: string;
   originalUrl?: string;
   enabled: boolean;
   sortOrder: number;
   duration: number;
-  kind: 'image' | 'video';
+  kind: 'image' | 'video' | 'dua';
+  dua?: DuaContent;
+};
+
+export type DuaContent = {
+  id: string;
+  title: string;
+  arabic: string;
+  transliteration?: string;
+  translation: string;
+  source?: string;
+  category?: string;
+  repeat?: number;
 };
 
 export type PrayerRow = {
