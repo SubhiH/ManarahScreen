@@ -1,3 +1,5 @@
+import type { DhikrPalette } from './dhikrPalettes';
+
 export type LayoutName = 'sidebar-right' | 'sidebar-bottom' | 'top-bar' | 'flyer-board';
 export type ThemeName =
   | 'midnight'
@@ -24,6 +26,12 @@ export type PublicSettings = {
   adhanCountdownSeconds: number;
   dimMinutes: number;
   dimOpacity: number;
+  postPrayerAdhkarEnabled: boolean;
+  postPrayerAdhkarMinutes: number;
+  /** Empty string = use the built-in title. */
+  postPrayerAdhkarTitle: string;
+  /** Empty array = use the built-in adhkar. */
+  postPrayerAdhkarItems: PostPrayerDhikr[];
   sunriseCounterMinutes: number;
   sunriseCounterLabel: string;
   sunriseCounterPosition: 'slide-area' | 'top-banner' | 'sidebar-inline';
@@ -50,6 +58,15 @@ export type UnifiedSlide = {
   duration: number;
   kind: 'image' | 'video' | 'dua';
   dua?: DuaContent;
+};
+
+export type PostPrayerDhikr = {
+  arabic: string;
+  transliteration?: string;
+  translation?: string;
+  source?: string;
+  /** Background/accent set for this dhikr; falls back to the default palette. */
+  palette?: DhikrPalette;
 };
 
 export type DuaContent = {

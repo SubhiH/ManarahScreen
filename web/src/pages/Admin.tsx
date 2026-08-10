@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import type { UnifiedSlide } from '@/lib/types';
+import { DEFAULT_ADHKAR_TITLE, DEFAULT_POST_PRAYER_ADHKAR } from '@/lib/adhkar';
+import {
+  DEFAULT_ADHKAR_PALETTE,
+  DHIKR_PALETTE_KEYS,
+  DHIKR_PALETTES,
+} from '@/lib/dhikrPalettes';
+import type { PostPrayerDhikr, UnifiedSlide } from '@/lib/types';
 
 export default function Admin() {
   const statusQ = useQuery({ queryKey: ['admin-status'], queryFn: () => api.adminStatus() });
@@ -327,9 +333,14 @@ function SourcesTab({ s, save }: { s: SettingsState; save: SaveFn }) {
         </Field>
         <div className="text-xs text-theme-text-dim/70">
           The generated slide displays Arabic, transliteration, translation, source, and repeat
-          count on an emerald-and-gold background. Its display time and carousel position can be
-          adjusted in the Slides tab after the first sync.
+          count on an emerald-and-gold background, sized to fill the screen. Its display time and
+          carousel position can be adjusted in the Slides tab after the first sync.
         </div>
+        <PreviewButton
+          mode="dua"
+          label="Preview dua slide"
+          hint="Shows the cached dua, or a sample if none has synced yet."
+        />
       </Card>
 
       <Card title="Custom slides API">
@@ -646,7 +657,278 @@ function PrayerTab({ s, save }: { s: SettingsState; save: SaveFn }) {
         </Field>
         <PreviewButton mode="dim" label="Preview dim overlay" hint="30s preview." />
       </Card>
+
+      <Card title="Adhkar after prayer">
+        <Field
+          label="Show adhkar when the dim ends"
+          hint="Once the post-Iqama dim window finishes, the slide area shows the adhkar recited after salah (استغفار، اللهم أنت السلام، التسبيح والتحميد والتكبير)."
+        >
+          <Toggle
+            value={s.postPrayerAdhkarEnabled}
+            onChange={(value) => save({ postPrayerAdhkarEnabled: value })}
+          />
+        </Field>
+        <Field
+          label={`Adhkar duration: ${s.postPrayerAdhkarMinutes} min`}
+          hint={`Runs from Iqama + ${s.dimMinutes} min (end of dim) to Iqama + ${
+            s.dimMinutes + s.postPrayerAdhkarMinutes
+          } min, cycling through each dhikr.`}
+        >
+          <input
+            type="range"
+            min={1}
+            max={30}
+            step={1}
+            value={s.postPrayerAdhkarMinutes}
+            disabled={!s.postPrayerAdhkarEnabled}
+            onChange={(e) => save({ postPrayerAdhkarMinutes: Number(e.target.value) })}
+          />
+        </Field>
+        <AdhkarEditor s={s} save={save} />
+        <PreviewButton mode="adhkar" label="Preview adhkar" hint="90s preview." />
+      </Card>
     </>
+  );
+}
+
+const EMPTY_DHIKR: PostPrayerDhikr = {
+  arabic: '',
+  transliteration: '',
+  translation: '',
+  source: '',
+  palette: DEFAULT_ADHKAR_PALETTE,
+};
+
+function AdhkarEditor({ s, save }: { s: SettingsState; save: SaveFn }) {
+  const savedItems = useMemo(
+    () => (s.postPrayerAdhkarItems?.length ? s.postPrayerAdhkarItems : DEFAULT_POST_PRAYER_ADHKAR),
+    [s.postPrayerAdhkarItems],
+  );
+  const savedTitle = s.postPrayerAdhkarTitle || DEFAULT_ADHKAR_TITLE;
+
+  const [items, setItems] = useState<PostPrayerDhikr[]>(savedItems);
+  const [title, setTitle] = useState(savedTitle);
+  const [edited, setEdited] = useState(false);
+  const editedRef = useRef(false);
+
+  // Adopt server values unless the admin has edits in flight (any save on this
+  // page refetches the settings).
+  useEffect(() => {
+    if (editedRef.current) return;
+    setItems(savedItems);
+    setTitle(savedTitle);
+  }, [savedItems, savedTitle]);
+
+  const markEdited = () => {
+    editedRef.current = true;
+    setEdited(true);
+  };
+  const update = (index: number, patch: Partial<PostPrayerDhikr>) => {
+    markEdited();
+    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
+  };
+  const move = (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= items.length) return;
+    markEdited();
+    setItems((prev) => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const commit = () => {
+    const cleaned = items
+      .map((it) => ({
+        arabic: it.arabic.trim(),
+        transliteration: it.transliteration?.trim() || undefined,
+        translation: it.translation?.trim() || undefined,
+        source: it.source?.trim() || undefined,
+        palette: it.palette ?? DEFAULT_ADHKAR_PALETTE,
+      }))
+      .filter((it) => it.arabic);
+    editedRef.current = false;
+    setEdited(false);
+    setItems(cleaned.length ? cleaned : DEFAULT_POST_PRAYER_ADHKAR);
+    save({ postPrayerAdhkarTitle: title.trim(), postPrayerAdhkarItems: cleaned });
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-theme-border/10 pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-theme-text-dim">
+          Adhkar text ({items.length})
+        </span>
+        {edited && <span className="text-xs font-semibold text-theme-accent">Unsaved changes</span>}
+      </div>
+
+      <Field label="Header shown above every dhikr">
+        <input
+          className={inputCls}
+          value={title}
+          onChange={(e) => {
+            markEdited();
+            setTitle(e.target.value);
+          }}
+          placeholder={DEFAULT_ADHKAR_TITLE}
+        />
+      </Field>
+
+      {items.map((item, i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-2 rounded-lg border border-theme-border/10 bg-theme-bg/40 p-4"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-theme-text-dim">
+              Dhikr {i + 1}
+            </span>
+            <div className="flex items-center gap-1">
+              <IconBtn label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+                ↑
+              </IconBtn>
+              <IconBtn
+                label="Move down"
+                disabled={i === items.length - 1}
+                onClick={() => move(i, 1)}
+              >
+                ↓
+              </IconBtn>
+              <button
+                type="button"
+                onClick={() => {
+                  markEdited();
+                  setItems((prev) => prev.filter((_, idx) => idx !== i));
+                }}
+                className="rounded-md border border-red-500/30 px-2 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+          <textarea
+            className={`${inputCls} min-h-[5rem] font-arabic text-xl leading-loose`}
+            dir="rtl"
+            lang="ar"
+            rows={3}
+            placeholder="النص العربي"
+            value={item.arabic}
+            onChange={(e) => update(i, { arabic: e.target.value })}
+          />
+          <input
+            className={inputCls}
+            placeholder="Transliteration (optional)"
+            value={item.transliteration ?? ''}
+            onChange={(e) => update(i, { transliteration: e.target.value })}
+          />
+          <textarea
+            className={`${inputCls} min-h-[3.5rem]`}
+            rows={2}
+            placeholder="English translation (optional)"
+            value={item.translation ?? ''}
+            onChange={(e) => update(i, { translation: e.target.value })}
+          />
+          <input
+            className={inputCls}
+            placeholder="Source, e.g. Muslim 591 (optional)"
+            value={item.source ?? ''}
+            onChange={(e) => update(i, { source: e.target.value })}
+          />
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-xs font-medium uppercase tracking-wider text-theme-text-dim">
+              Colour
+            </span>
+            {DHIKR_PALETTE_KEYS.map((key) => {
+              const selected = (item.palette ?? DEFAULT_ADHKAR_PALETTE) === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  title={DHIKR_PALETTES[key].label}
+                  aria-label={DHIKR_PALETTES[key].label}
+                  aria-pressed={selected}
+                  onClick={() => update(i, { palette: key })}
+                  className={cn(
+                    'h-7 w-7 rounded-full border-2 transition-transform',
+                    selected
+                      ? 'scale-110 border-theme-accent'
+                      : 'border-theme-border/20 hover:scale-105',
+                  )}
+                  style={{ backgroundImage: DHIKR_PALETTES[key].swatch }}
+                />
+              );
+            })}
+            <span className="text-xs text-theme-text-dim/70">
+              {DHIKR_PALETTES[item.palette ?? DEFAULT_ADHKAR_PALETTE].label}
+            </span>
+          </div>
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            markEdited();
+            setItems((prev) => [...prev, { ...EMPTY_DHIKR }]);
+          }}
+          className="rounded-md border border-theme-border/10 px-4 py-2 text-sm font-semibold text-theme-text/90 hover:bg-theme-border/5"
+        >
+          + Add dhikr
+        </button>
+        <button
+          type="button"
+          onClick={commit}
+          disabled={!edited}
+          className="rounded-md bg-theme-accent px-4 py-2 text-sm font-semibold text-theme-accent-contrast hover:brightness-110 disabled:opacity-40"
+        >
+          Save adhkar
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            markEdited();
+            setItems(DEFAULT_POST_PRAYER_ADHKAR);
+            setTitle(DEFAULT_ADHKAR_TITLE);
+          }}
+          className="text-sm text-theme-text-dim underline-offset-4 hover:text-theme-text hover:underline"
+        >
+          Restore built-in adhkar
+        </button>
+      </div>
+
+      <div className="text-xs text-theme-text-dim/70">
+        Only Arabic is required — a dhikr with an empty Arabic box is dropped on save. Each one
+        stays on screen for up to 45s before the next, cycling until the window ends. Removing all
+        of them falls back to the two built-in adhkar.
+      </div>
+    </div>
+  );
+}
+
+function IconBtn({
+  children,
+  label,
+  disabled,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-md border border-theme-border/10 px-2 py-1 text-xs text-theme-text-dim hover:bg-theme-border/5 disabled:opacity-30"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -655,7 +937,7 @@ function PreviewButton({
   label,
   hint,
 }: {
-  mode: 'countdown' | 'sunrise' | 'dim';
+  mode: 'countdown' | 'sunrise' | 'dim' | 'adhkar' | 'dua';
   label: string;
   hint?: string;
 }) {

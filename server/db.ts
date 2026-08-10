@@ -34,6 +34,25 @@ db.exec(`
   );
 `);
 
+/** Keep in sync with web/src/lib/dhikrPalettes.ts. */
+export const DHIKR_PALETTES = [
+  'emerald',
+  'royal',
+  'midnight',
+  'maroon',
+  'teal',
+  'charcoal',
+] as const;
+export type DhikrPalette = (typeof DHIKR_PALETTES)[number];
+
+export type PostPrayerDhikr = {
+  arabic: string;
+  transliteration?: string;
+  translation?: string;
+  source?: string;
+  palette?: DhikrPalette;
+};
+
 export type SettingsShape = {
   masjidalEmail: string;
   masjidalPassword: string;
@@ -52,6 +71,10 @@ export type SettingsShape = {
   adhanCountdownSeconds: number;    // default 60
   dimMinutes: number;               // default 10
   dimOpacity: number;               // 0..1 (default 0.85)
+  postPrayerAdhkarEnabled: boolean; // show adhkar after the dim window ends
+  postPrayerAdhkarMinutes: number;  // default 3
+  postPrayerAdhkarTitle: string;    // '' = built-in title
+  postPrayerAdhkarItems: PostPrayerDhikr[]; // [] = built-in adhkar
   sunriseCounterMinutes: number;    // default 15
   sunriseCounterLabel: string;      // default "Time for Duha"
   sunriseCounterPosition: 'slide-area' | 'top-banner' | 'sidebar-inline';
@@ -85,6 +108,10 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   adhanCountdownSeconds: 60,
   dimMinutes: 10,
   dimOpacity: 0.85,
+  postPrayerAdhkarEnabled: false,
+  postPrayerAdhkarMinutes: 3,
+  postPrayerAdhkarTitle: '',
+  postPrayerAdhkarItems: [],
   sunriseCounterMinutes: 15,
   sunriseCounterLabel: 'Time for Duha',
   sunriseCounterPosition: 'slide-area',

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { PrayerRow, PublicSettings, UnifiedSlide } from '@/lib/types';
+import type { PostPrayerDhikr, PrayerRow, PublicSettings, UnifiedSlide } from '@/lib/types';
 
 export type DisplayProps = {
   now: DateTime;
@@ -18,5 +18,13 @@ export type DisplayProps = {
     endTime?: string;
   };
   dim: { active: boolean };
+  postAdhkar: {
+    active: boolean;
+    /** Seconds since the adhkar window opened (i.e. since the dim ended). */
+    secondsElapsed: number;
+    totalSeconds: number;
+    items: PostPrayerDhikr[];
+    title: string;
+  };
   nextAction: { kind: 'adhan' | 'iqamah'; label: string; at: DateTime } | null;
 };

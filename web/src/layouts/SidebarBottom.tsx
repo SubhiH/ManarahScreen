@@ -5,6 +5,7 @@ import Clock from '@/components/Clock';
 import PrayerTable from '@/components/PrayerTable';
 import SlideCarousel from '@/components/SlideCarousel';
 import DimOverlay from '@/components/DimOverlay';
+import PostPrayerAdhkar from '@/components/PostPrayerAdhkar';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import SunriseCounter from '@/components/SunriseCounter';
 import { api } from '@/lib/api';
@@ -57,6 +58,7 @@ export default function SidebarBottom(p: DisplayProps) {
       <div className="relative flex-1 [container-type:size]">
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
+        <PostPrayerAdhkar {...p.postAdhkar} />
         <CountdownOverlay
           show={p.countdown.active}
           prayerLabel={p.countdown.label}

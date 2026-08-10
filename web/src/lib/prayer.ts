@@ -143,18 +143,24 @@ export function findNextAction(
   return nextA ? { kind: 'adhan', key: nextA.key, label: nextA.label, at: nextA.at } : null;
 }
 
-export function findIqamahJustPassed(
+/**
+ * The Iqama whose elapsed time falls in the half-open window
+ * `[fromSeconds, toSeconds)` — used to chain the post-Iqama phases
+ * (dim first, then adhkar) without both firing on the same tick.
+ */
+export function findIqamahInRange(
   rows: PrayerRow[],
   tz: string,
   now: DateTime,
-  windowSeconds: number,
+  fromSeconds: number,
+  toSeconds: number,
 ): PrayerEvent | null {
+  if (toSeconds <= fromSeconds) return null;
   return (
-    todayEvents(rows, tz).find(
-      (e) =>
-        e.kind === 'iqamah' &&
-        e.at <= now &&
-        now.diff(e.at).as('seconds') <= windowSeconds,
-    ) ?? null
+    todayEvents(rows, tz).find((e) => {
+      if (e.kind !== 'iqamah' || e.at > now) return false;
+      const elapsed = now.diff(e.at).as('seconds');
+      return elapsed >= fromSeconds && elapsed < toSeconds;
+    }) ?? null
   );
 }

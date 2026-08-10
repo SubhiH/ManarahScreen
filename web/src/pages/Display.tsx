@@ -3,11 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { DateTime } from 'luxon';
 import { api } from '@/lib/api';
+import { resolveAdhkar, resolveAdhkarTitle } from '@/lib/adhkar';
+import { duaPreviewSlides } from '@/lib/duaPreview';
 import { useNow } from '@/hooks/useNow';
 import { fmtTimeShort, parseTodayHm } from '@/lib/time';
 import {
   findCurrentPrayer,
-  findIqamahJustPassed,
+  findIqamahInRange,
   findNextAction,
   findNextAdhan,
   jumuahFromPayload,
@@ -81,15 +83,32 @@ export default function Display() {
     ? fmtTimeShort(sunriseAt.plus({ minutes: s.sunriseCounterMinutes }).toFormat('HH:mm'))
     : undefined;
 
-  const iqamahJust = findIqamahJustPassed(rows, tz, now, s.dimMinutes * 60);
+  // Post-Iqama phases run back to back: dim first, then (optionally) adhkar.
+  const dimSeconds = Math.max(0, s.dimMinutes) * 60;
+  const adhkarSeconds = s.postPrayerAdhkarEnabled
+    ? Math.max(0, s.postPrayerAdhkarMinutes) * 60
+    : 0;
+  const iqamahJust = findIqamahInRange(rows, tz, now, 0, dimSeconds);
+  const adhkarIqamah = findIqamahInRange(
+    rows,
+    tz,
+    now,
+    dimSeconds,
+    dimSeconds + adhkarSeconds,
+  );
+  const adhkarElapsed = adhkarIqamah
+    ? Math.floor(now.diff(adhkarIqamah.at).as('seconds')) - dimSeconds
+    : 0;
   const nextAction = findNextAction(rows, tz, now);
 
-  // Optional preview mode: /?test=countdown|sunrise|dim
+  // Optional preview mode: /?test=countdown|sunrise|dim|adhkar|dua
   const testMode = searchParams.get('test');
   const elapsed = Math.floor(now.diff(testStartRef.current).as('seconds'));
   const test = testMode
     ? applyTestMode(testMode, elapsed, s.adhanCountdownSeconds, s.sunriseCounterMinutes * 60)
     : null;
+
+  const slides = slidesQ.data?.slides ?? [];
 
   const props: DisplayProps = {
     now,
@@ -98,7 +117,7 @@ export default function Display() {
     currentKey,
     nextKey: nextAdhan?.key ?? null,
     jumuah,
-    slides: slidesQ.data?.slides ?? [],
+    slides: testMode === 'dua' ? duaPreviewSlides(slides) : slides,
     countdown: test?.countdown ?? {
       active: countdownActive,
       label: nextAdhan?.label,
@@ -111,6 +130,15 @@ export default function Display() {
       endTime: sunriseEndTime,
     },
     dim: test?.dim ?? { active: !!iqamahJust },
+    postAdhkar: {
+      ...(test?.postAdhkar ?? {
+        active: !!adhkarIqamah,
+        secondsElapsed: Math.max(0, adhkarElapsed),
+        totalSeconds: adhkarSeconds,
+      }),
+      items: resolveAdhkar(s.postPrayerAdhkarItems),
+      title: resolveAdhkarTitle(s.postPrayerAdhkarTitle),
+    },
     nextAction,
   };
 
@@ -144,6 +172,7 @@ function applyTestMode(
   countdown?: DisplayProps['countdown'];
   sunrise?: DisplayProps['sunrise'];
   dim?: DisplayProps['dim'];
+  postAdhkar?: Omit<DisplayProps['postAdhkar'], 'items' | 'title'>;
 } | null {
   if (mode === 'countdown') {
     const total = Math.max(15, adhanCountdownSec);
@@ -174,6 +203,17 @@ function applyTestMode(
     // Fixed 30s preview.
     return { dim: { active: elapsed < 30 } };
   }
+  if (mode === 'adhkar') {
+    // Fixed 90s preview — long enough to cycle through every dhikr once.
+    const total = 90;
+    return {
+      postAdhkar: {
+        active: elapsed < total,
+        secondsElapsed: elapsed,
+        totalSeconds: total,
+      },
+    };
+  }
   return null;
 }
 
@@ -187,9 +227,11 @@ function TestBanner({
   test: ReturnType<typeof applyTestMode>;
 }) {
   const active =
+    mode === 'dua' || // the dua preview simply stays on screen
     (mode === 'countdown' && test?.countdown?.active) ||
     (mode === 'sunrise' && test?.sunrise?.active) ||
-    (mode === 'dim' && test?.dim?.active);
+    (mode === 'dim' && test?.dim?.active) ||
+    (mode === 'adhkar' && test?.postAdhkar?.active);
   return (
     <div className="pointer-events-none absolute left-1/2 top-3 z-[60] -translate-x-1/2 rounded-full border border-theme-accent/50 bg-black/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-theme-accent">
       Test mode · {mode} · {active ? `${elapsed}s elapsed` : 'ended (reload to replay)'}

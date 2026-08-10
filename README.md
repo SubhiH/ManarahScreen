@@ -10,8 +10,10 @@ ManarahScreen is a kiosk web app for masjid monitors. It shows today's prayer ti
 - Full-screen Adhan countdown overlay when the next prayer is ≤1 min away (configurable).
 - Inline post-Sunrise (Ishraq) counter, default 15 min — non-intrusive, never full-screen.
 - Dims the slides only (prayer sidebar stays visible) for 10 min after each Iqama (configurable).
+- Optional adhkar after salah, shown full-screen in the slide area once the dim window ends. On/off, duration, and the adhkar themselves (add, edit, reorder, remove, and a colour per dhikr) are all editable in `/admin`.
+- Every overlay can be previewed from `/admin` without waiting for the real time window: `/?test=countdown|sunrise|dim|adhkar|dua`.
 - Independently select Masjidal for prayer times and Masjidal, a custom public API, or neither for remote slides.
-- Optional text-based Dua slide from UmmahAPI with Arabic, transliteration, translation, source, and a configurable multi-day cache.
+- Optional text-based Dua slide from UmmahAPI with Arabic, transliteration, translation, source, and a configurable multi-day cache. Text is measured and scaled to fill the screen, so short and long duas are both as large as they can be.
 - Daily and on-demand sync. Remote slides are cached locally for offline use.
 - Drop image/video files into `slides/` — they appear automatically.
 - PIN-protected `/admin` settings page.

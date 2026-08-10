@@ -6,7 +6,10 @@ import fs from 'node:fs';
 import multer from 'multer';
 import {
   cacheRead,
+  DhikrPalette,
+  DHIKR_PALETTES,
   getSettings,
+  PostPrayerDhikr,
   saveSettings,
   SettingsShape,
 } from './db';
@@ -163,6 +166,46 @@ app.get('/api/admin/session', requireAdmin, (_req, res) => res.json({ ok: true }
 
 /* ---------- admin API ---------- */
 
+const MAX_ADHKAR_ITEMS = 20;
+const MAX_ADHKAR_FIELD = 2000;
+
+/** Keeps only the known fields, and only entries that actually carry Arabic text. */
+function sanitizeAdhkarItems(raw: unknown): PostPrayerDhikr[] {
+  if (!Array.isArray(raw)) throw new Error('postPrayerAdhkarItems must be an array');
+  if (raw.length > MAX_ADHKAR_ITEMS) {
+    throw new Error(`postPrayerAdhkarItems is limited to ${MAX_ADHKAR_ITEMS} entries`);
+  }
+  const field = (value: unknown, name: string): string => {
+    if (value === undefined || value === null) return '';
+    if (typeof value !== 'string') throw new Error(`dhikr ${name} must be a string`);
+    if (value.length > MAX_ADHKAR_FIELD) {
+      throw new Error(`dhikr ${name} is limited to ${MAX_ADHKAR_FIELD} characters`);
+    }
+    return value.trim();
+  };
+
+  const items: PostPrayerDhikr[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error('each dhikr must be an object');
+    }
+    const e = entry as Record<string, unknown>;
+    const arabic = field(e.arabic, 'arabic');
+    if (!arabic) continue; // blank rows from the editor are dropped, not an error
+    if (e.palette !== undefined && !DHIKR_PALETTES.includes(e.palette as DhikrPalette)) {
+      throw new Error(`dhikr palette must be one of: ${DHIKR_PALETTES.join(', ')}`);
+    }
+    items.push({
+      arabic,
+      transliteration: field(e.transliteration, 'transliteration') || undefined,
+      translation: field(e.translation, 'translation') || undefined,
+      source: field(e.source, 'source') || undefined,
+      palette: e.palette as DhikrPalette | undefined,
+    });
+  }
+  return items;
+}
+
 app.get('/api/admin/settings', requireAdmin, (_req, res) => {
   const s = getSettings();
   // never send hash
@@ -204,6 +247,36 @@ app.put('/api/admin/settings', requireAdmin, (req, res) => {
   if (body.duaSlideEnabled !== undefined && typeof body.duaSlideEnabled !== 'boolean') {
     res.status(400).json({ error: 'duaSlideEnabled must be a boolean' });
     return;
+  }
+  if (
+    body.postPrayerAdhkarEnabled !== undefined &&
+    typeof body.postPrayerAdhkarEnabled !== 'boolean'
+  ) {
+    res.status(400).json({ error: 'postPrayerAdhkarEnabled must be a boolean' });
+    return;
+  }
+  if (body.postPrayerAdhkarMinutes !== undefined) {
+    const minutes = Number(body.postPrayerAdhkarMinutes);
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 30) {
+      res.status(400).json({ error: 'postPrayerAdhkarMinutes must be from 1 to 30' });
+      return;
+    }
+    body.postPrayerAdhkarMinutes = Math.round(minutes);
+  }
+  if (body.postPrayerAdhkarTitle !== undefined) {
+    if (typeof body.postPrayerAdhkarTitle !== 'string') {
+      res.status(400).json({ error: 'postPrayerAdhkarTitle must be a string' });
+      return;
+    }
+    body.postPrayerAdhkarTitle = body.postPrayerAdhkarTitle.trim().slice(0, 200);
+  }
+  if (body.postPrayerAdhkarItems !== undefined) {
+    try {
+      body.postPrayerAdhkarItems = sanitizeAdhkarItems(body.postPrayerAdhkarItems);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
   }
   if (body.duaCacheDays !== undefined) {
     const days = Number(body.duaCacheDays);

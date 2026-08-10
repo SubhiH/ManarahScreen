@@ -5,6 +5,7 @@ import SlideCarousel from '@/components/SlideCarousel';
 import LiveStream from '@/components/LiveStream';
 import LiveToggle from '@/components/LiveToggle';
 import DimOverlay from '@/components/DimOverlay';
+import PostPrayerAdhkar from '@/components/PostPrayerAdhkar';
 import CountdownOverlay from '@/components/CountdownOverlay';
 import SunriseCounter from '@/components/SunriseCounter';
 import { addMinutesHm, fmtTimeShort, hijriForDate } from '@/lib/time';
@@ -110,6 +111,7 @@ export default function FlyerBoard(p: DisplayProps) {
         )}
         <LiveToggle active={p.settings.liveMode} />
         <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
+        <PostPrayerAdhkar {...p.postAdhkar} />
         <CountdownOverlay
           show={p.countdown.active}
           prayerLabel={p.countdown.label}
