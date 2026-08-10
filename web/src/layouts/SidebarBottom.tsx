@@ -57,7 +57,7 @@ export default function SidebarBottom(p: DisplayProps) {
     <div ref={rootRef} className="relative flex h-full w-full select-none flex-col">
       <div className="relative flex-1 [container-type:size]">
         <SlideCarousel slides={p.slides} />
-        <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
+        <DimOverlay show={p.dim.active && !p.settings.liveMode} opacity={p.settings.dimOpacity} />
         <PostPrayerAdhkar {...p.postAdhkar} />
         <CountdownOverlay
           show={p.countdown.active}

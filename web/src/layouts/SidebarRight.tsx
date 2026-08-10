@@ -67,7 +67,7 @@ export default function SidebarRight(p: DisplayProps) {
           <SlideCarousel slides={p.slides} />
         )}
         <LiveToggle active={p.settings.liveMode} />
-        <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
+        <DimOverlay show={p.dim.active && !p.settings.liveMode} opacity={p.settings.dimOpacity} />
         <PostPrayerAdhkar {...p.postAdhkar} />
         <CountdownOverlay
           show={p.countdown.active}
