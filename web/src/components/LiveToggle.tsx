@@ -22,7 +22,7 @@ export default function LiveToggle({ active }: { active: boolean }) {
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-theme-border/20 bg-theme-bg/70 px-3 py-1.5 text-xs font-medium text-theme-text-dim shadow-lg backdrop-blur transition-opacity hover:text-theme-accent ${
+      className={`absolute right-3 top-3 z-40 flex items-center gap-1.5 rounded-full border border-theme-border/20 bg-theme-bg/70 px-3 py-1.5 text-xs font-medium text-theme-text-dim shadow-lg backdrop-blur transition-opacity hover:text-theme-accent ${
         active ? 'opacity-100' : 'opacity-30 hover:opacity-100'
       }`}
     >

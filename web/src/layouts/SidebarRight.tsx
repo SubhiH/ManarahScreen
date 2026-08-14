@@ -2,14 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Clock from '@/components/Clock';
 import PrayerTable from '@/components/PrayerTable';
-import SlideCarousel from '@/components/SlideCarousel';
-import LiveStream from '@/components/LiveStream';
-import LiveToggle from '@/components/LiveToggle';
-import DimOverlay from '@/components/DimOverlay';
-import PostPrayerAdhkar from '@/components/PostPrayerAdhkar';
-import CountdownOverlay from '@/components/CountdownOverlay';
 import SunriseCounter from '@/components/SunriseCounter';
 import NextPrayerTicker from '@/components/NextPrayerTicker';
+import SlideArea from '@/components/SlideArea';
 import { api } from '@/lib/api';
 import type { DisplayProps } from './types';
 
@@ -61,30 +56,7 @@ export default function SidebarRight(p: DisplayProps) {
   return (
     <div ref={rootRef} className="relative flex h-full w-full select-none">
       <div className="relative flex-1 [container-type:size]">
-        {p.settings.liveMode ? (
-          <LiveStream cameraLabel={p.settings.liveCameraLabel} />
-        ) : (
-          <SlideCarousel slides={p.slides} />
-        )}
-        <LiveToggle active={p.settings.liveMode} />
-        <DimOverlay show={p.dim.active && !p.settings.liveMode} opacity={p.settings.dimOpacity} />
-        <PostPrayerAdhkar {...p.postAdhkar} />
-        <CountdownOverlay
-          show={p.countdown.active}
-          prayerLabel={p.countdown.label}
-          secondsRemaining={p.countdown.secondsRemaining}
-        />
-        {(p.settings.sunriseCounterPosition === 'slide-area' ||
-          p.settings.sunriseCounterPosition === 'top-banner') && (
-          <SunriseCounter
-            show={p.sunrise.active}
-            label={p.settings.sunriseCounterLabel}
-            secondsRemaining={p.sunrise.secondsRemaining}
-            totalSeconds={p.sunrise.totalSeconds}
-            endTime={p.sunrise.endTime}
-            position={p.settings.sunriseCounterPosition}
-          />
-        )}
+        <SlideArea {...p} />
       </div>
 
       {/* Draggable divider */}
