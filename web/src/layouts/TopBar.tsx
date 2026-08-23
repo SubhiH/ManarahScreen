@@ -73,11 +73,7 @@ export default function TopBar(p: DisplayProps) {
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active && !p.settings.liveMode} opacity={p.settings.dimOpacity} />
         <PostPrayerAdhkar {...p.postAdhkar} />
-        <CountdownOverlay
-          show={p.countdown.active}
-          prayerLabel={p.countdown.label}
-          secondsRemaining={p.countdown.secondsRemaining}
-        />
+        <CountdownOverlay {...p.countdown} />
         <SunriseCounter
           show={p.sunrise.active}
           label={p.settings.sunriseCounterLabel}

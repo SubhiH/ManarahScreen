@@ -20,6 +20,7 @@ import SidebarBottom from '@/layouts/SidebarBottom';
 import TopBar from '@/layouts/TopBar';
 import FlyerBoard from '@/layouts/FlyerBoard';
 import type { DisplayProps } from '@/layouts/types';
+import type { PublicSettings } from '@/lib/types';
 
 export default function Display() {
   const [searchParams] = useSearchParams();
@@ -101,11 +102,20 @@ export default function Display() {
     : 0;
   const nextAction = findNextAction(rows, tz, now);
 
-  // Optional preview mode: /?test=countdown|sunrise|dim|adhkar|dua
+  // Iqama countdown — the mirror of the Adhan one, for the final seconds
+  // before the rows are straightened.
+  const iqamahRemaining =
+    nextAction?.kind === 'iqamah' ? Math.floor(nextAction.at.diff(now).as('seconds')) : 0;
+  const iqamahCountdownActive =
+    nextAction?.kind === 'iqamah' &&
+    iqamahRemaining > 0 &&
+    iqamahRemaining <= s.iqamahCountdownSeconds;
+
+  // Optional preview mode: /?test=countdown|iqamah|sunrise|dim|adhkar|dua
   const testMode = searchParams.get('test');
   const elapsed = Math.floor(now.diff(testStartRef.current).as('seconds'));
   const test = testMode
-    ? applyTestMode(testMode, elapsed, s.adhanCountdownSeconds, s.sunriseCounterMinutes * 60)
+    ? applyTestMode(testMode, elapsed, s, s.sunriseCounterMinutes * 60)
     : null;
 
   const slides = slidesQ.data?.slides ?? [];
@@ -118,11 +128,23 @@ export default function Display() {
     nextKey: nextAdhan?.key ?? null,
     jumuah,
     slides: testMode === 'dua' ? duaPreviewSlides(slides) : slides,
-    countdown: test?.countdown ?? {
-      active: countdownActive,
-      label: nextAdhan?.label,
-      secondsRemaining: nextAdhan ? Math.floor(nextAdhan.at.diff(now).as('seconds')) : 0,
-    },
+    countdown:
+      test?.countdown ??
+      (iqamahCountdownActive
+        ? {
+            active: true,
+            kind: 'iqamah',
+            label: nextAction?.label,
+            secondsRemaining: iqamahRemaining,
+          }
+        : {
+            active: countdownActive,
+            kind: 'adhan',
+            label: nextAdhan?.label,
+            secondsRemaining: nextAdhan
+              ? Math.floor(nextAdhan.at.diff(now).as('seconds'))
+              : 0,
+          }),
     sunrise: test?.sunrise ?? {
       active: sunriseActive,
       secondsRemaining: Math.max(0, sunriseRemaining),
@@ -166,7 +188,7 @@ export default function Display() {
 function applyTestMode(
   mode: string,
   elapsed: number,
-  adhanCountdownSec: number,
+  settings: PublicSettings,
   sunriseTotalSec: number,
 ): {
   countdown?: DisplayProps['countdown'];
@@ -174,13 +196,18 @@ function applyTestMode(
   dim?: DisplayProps['dim'];
   postAdhkar?: Omit<DisplayProps['postAdhkar'], 'items' | 'title'>;
 } | null {
-  if (mode === 'countdown') {
-    const total = Math.max(15, adhanCountdownSec);
+  if (mode === 'countdown' || mode === 'iqamah') {
+    const iqamah = mode === 'iqamah';
+    const total = Math.max(
+      15,
+      iqamah ? settings.iqamahCountdownSeconds : settings.adhanCountdownSeconds,
+    );
     const remaining = Math.max(0, total - elapsed);
     return {
       countdown: {
         active: remaining > 0,
-        label: 'Fajr (test)',
+        kind: iqamah ? 'iqamah' : 'adhan',
+        label: 'Maghrib (test)',
         secondsRemaining: remaining,
       },
     };
@@ -228,7 +255,7 @@ function TestBanner({
 }) {
   const active =
     mode === 'dua' || // the dua preview simply stays on screen
-    (mode === 'countdown' && test?.countdown?.active) ||
+    ((mode === 'countdown' || mode === 'iqamah') && test?.countdown?.active) ||
     (mode === 'sunrise' && test?.sunrise?.active) ||
     (mode === 'dim' && test?.dim?.active) ||
     (mode === 'adhkar' && test?.postAdhkar?.active);

@@ -248,6 +248,14 @@ app.put('/api/admin/settings', requireAdmin, (req, res) => {
     res.status(400).json({ error: 'duaSlideEnabled must be a boolean' });
     return;
   }
+  if (body.iqamahCountdownSeconds !== undefined) {
+    const seconds = Number(body.iqamahCountdownSeconds);
+    if (!Number.isFinite(seconds) || seconds < 0 || seconds > 300) {
+      res.status(400).json({ error: 'iqamahCountdownSeconds must be from 0 to 300' });
+      return;
+    }
+    body.iqamahCountdownSeconds = Math.round(seconds);
+  }
   if (
     body.postPrayerAdhkarEnabled !== undefined &&
     typeof body.postPrayerAdhkarEnabled !== 'boolean'

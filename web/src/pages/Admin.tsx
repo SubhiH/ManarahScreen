@@ -548,7 +548,7 @@ function PrayerTab({ s, save }: { s: SettingsState; save: SaveFn }) {
         </Field>
       </Card>
 
-      <Card title="Adhan countdown overlay">
+      <Card title="Countdown overlays">
         <Field
           label={`Show overlay when next Adhan is ≤ ${s.adhanCountdownSeconds}s away`}
           hint="Full-screen overlay. Default 60 seconds."
@@ -562,7 +562,28 @@ function PrayerTab({ s, save }: { s: SettingsState; save: SaveFn }) {
             onChange={(e) => save({ adhanCountdownSeconds: Number(e.target.value) })}
           />
         </Field>
-        <PreviewButton mode="countdown" label="Preview countdown overlay" />
+        <PreviewButton mode="countdown" label="Preview Adhan countdown" />
+
+        <div className="border-t border-theme-border/10 pt-4">
+          <Field
+            label={
+              s.iqamahCountdownSeconds > 0
+                ? `Show overlay when Iqama is ≤ ${s.iqamahCountdownSeconds}s away`
+                : 'Iqama countdown: off'
+            }
+            hint="Same overlay, counting down to Iqama with a straighten-the-rows reminder. Default 50 seconds; drag to 0 to turn it off."
+          >
+            <input
+              type="range"
+              min={0}
+              max={300}
+              step={5}
+              value={s.iqamahCountdownSeconds}
+              onChange={(e) => save({ iqamahCountdownSeconds: Number(e.target.value) })}
+            />
+          </Field>
+          <PreviewButton mode="iqamah" label="Preview Iqama countdown" />
+        </div>
       </Card>
 
       <Card title="Time for Duha (post-Sunrise) counter">
@@ -937,7 +958,7 @@ function PreviewButton({
   label,
   hint,
 }: {
-  mode: 'countdown' | 'sunrise' | 'dim' | 'adhkar' | 'dua';
+  mode: 'countdown' | 'iqamah' | 'sunrise' | 'dim' | 'adhkar' | 'dua';
   label: string;
   hint?: string;
 }) {

@@ -29,11 +29,7 @@ export default function SlideArea(p: DisplayProps) {
           <SlideCarousel slides={p.slides} />
           <DimOverlay show={p.dim.active} opacity={p.settings.dimOpacity} />
           <PostPrayerAdhkar {...p.postAdhkar} />
-          <CountdownOverlay
-            show={p.countdown.active}
-            prayerLabel={p.countdown.label}
-            secondsRemaining={p.countdown.secondsRemaining}
-          />
+          <CountdownOverlay {...p.countdown} />
           {(sunrisePosition === 'slide-area' || sunrisePosition === 'top-banner') && (
             <SunriseCounter
               show={p.sunrise.active}

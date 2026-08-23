@@ -9,7 +9,12 @@ export type DisplayProps = {
   nextKey: PrayerRow['key'] | null;
   jumuah: { j1?: string; j2?: string; j3?: string };
   slides: UnifiedSlide[];
-  countdown: { active: boolean; label?: string; secondsRemaining: number };
+  countdown: {
+    active: boolean;
+    kind: 'adhan' | 'iqamah';
+    label?: string;
+    secondsRemaining: number;
+  };
   sunrise: {
     active: boolean;
     secondsRemaining: number;

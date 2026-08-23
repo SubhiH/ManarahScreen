@@ -69,6 +69,7 @@ export type SettingsShape = {
   showSunrise: boolean;
   jumuahCount: 1 | 2 | 3;
   adhanCountdownSeconds: number;    // default 60
+  iqamahCountdownSeconds: number;   // default 50
   dimMinutes: number;               // default 10
   dimOpacity: number;               // 0..1 (default 0.85)
   postPrayerAdhkarEnabled: boolean; // show adhkar after the dim window ends
@@ -106,6 +107,7 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   showSunrise: true,
   jumuahCount: 2,
   adhanCountdownSeconds: 60,
+  iqamahCountdownSeconds: 50,
   dimMinutes: 10,
   dimOpacity: 0.85,
   postPrayerAdhkarEnabled: false,

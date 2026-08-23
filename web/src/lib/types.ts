@@ -24,6 +24,7 @@ export type PublicSettings = {
   showSunrise: boolean;
   jumuahCount: 1 | 2 | 3;
   adhanCountdownSeconds: number;
+  iqamahCountdownSeconds: number;
   dimMinutes: number;
   dimOpacity: number;
   postPrayerAdhkarEnabled: boolean;

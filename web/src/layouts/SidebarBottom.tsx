@@ -59,11 +59,7 @@ export default function SidebarBottom(p: DisplayProps) {
         <SlideCarousel slides={p.slides} />
         <DimOverlay show={p.dim.active && !p.settings.liveMode} opacity={p.settings.dimOpacity} />
         <PostPrayerAdhkar {...p.postAdhkar} />
-        <CountdownOverlay
-          show={p.countdown.active}
-          prayerLabel={p.countdown.label}
-          secondsRemaining={p.countdown.secondsRemaining}
-        />
+        <CountdownOverlay {...p.countdown} />
         {(p.settings.sunriseCounterPosition === 'top-banner' ||
           p.settings.sunriseCounterPosition === 'slide-area') && (
           <SunriseCounter

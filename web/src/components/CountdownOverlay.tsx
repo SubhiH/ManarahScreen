@@ -2,15 +2,34 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { mmss } from '@/lib/time';
 
 type Props = {
-  show: boolean;
-  prayerLabel?: string;
+  active: boolean;
+  kind: 'adhan' | 'iqamah';
+  label?: string;
   secondsRemaining: number;
 };
 
-export default function CountdownOverlay({ show, prayerLabel, secondsRemaining }: Props) {
+/** The reminder that belongs under each countdown. */
+const NOTE = {
+  adhan: {
+    left: '📵',
+    right: '🔕',
+    text: 'Please silence your phones · الرجاء إغلاق الهواتف',
+  },
+  iqamah: {
+    left: '۞',
+    right: '۞',
+    text: 'Please straighten the rows · سَوُّوا صُفُوفَكُمْ',
+  },
+} as const;
+
+export default function CountdownOverlay({ active, kind, label, secondsRemaining }: Props) {
+  const note = NOTE[kind];
+  const heading =
+    kind === 'iqamah' ? `${label ? `${label} ` : ''}Iqama in` : `${label ?? 'Adhan'} in`;
+
   return (
     <AnimatePresence>
-      {show && (
+      {active && (
         <motion.div
           className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center"
           initial={{ opacity: 0 }}
@@ -27,15 +46,15 @@ export default function CountdownOverlay({ show, prayerLabel, secondsRemaining }
             className="relative flex flex-col items-center gap-6 rounded-3xl border border-theme-accent/50 bg-black/60 px-16 py-12 shadow-[0_0_120px_-10px_rgb(var(--t-accent-rgb)/0.55)] animate-pulse-glow"
           >
             <div className="text-[2.5vw] font-medium uppercase tracking-[0.3em] text-theme-accent">
-              {prayerLabel ?? 'Adhan'} in
+              {heading}
             </div>
             <div className="font-mono text-[14vw] leading-none font-black text-white tabular-nums">
               {mmss(secondsRemaining)}
             </div>
             <div className="flex items-center gap-3 text-[1.5vw] font-light tracking-wide text-slate-300">
-              <span aria-hidden="true">📵</span>
-              <span>Please silence your phones · الرجاء إغلاق الهواتف</span>
-              <span aria-hidden="true">🔕</span>
+              <span aria-hidden="true">{note.left}</span>
+              <span>{note.text}</span>
+              <span aria-hidden="true">{note.right}</span>
             </div>
           </motion.div>
         </motion.div>
