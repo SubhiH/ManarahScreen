@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import SlideCarousel from './SlideCarousel';
-import LiveStream from './LiveStream';
+import LiveStream, { type FeedState } from './LiveStream';
 import LiveToggle from './LiveToggle';
 import DimOverlay from './DimOverlay';
 import PostPrayerAdhkar from './PostPrayerAdhkar';
@@ -27,14 +27,14 @@ import type { DisplayProps } from '@/layouts/types';
 export default function SlideArea(p: DisplayProps) {
   const live = p.settings.liveMode;
   const scheduled = live && p.settings.liveModeSource === 'schedule';
-  const [hasPicture, setHasPicture] = useState(false);
-  const showLive = live && (!scheduled || hasPicture);
+  const [feed, setFeed] = useState<FeedState>({ kind: 'starting' });
+  const showLive = live && (!scheduled || feed.kind === 'live');
   const sunrisePosition = p.settings.sunriseCounterPosition;
 
   return (
     <>
       {live && (
-        <LiveStream cameraLabel={p.settings.liveCameraLabel} onPictureChange={setHasPicture} />
+        <LiveStream cameraLabel={p.settings.liveCameraLabel} onFeedChange={setFeed} />
       )}
       {!showLive && (
         // Opaque while the feed waits underneath, so it can't show through an empty slide area.
@@ -57,7 +57,7 @@ export default function SlideArea(p: DisplayProps) {
       )}
 
       {/* Last, and above the overlays, so the operator can always switch back. */}
-      <LiveToggle showingLive={showLive} scheduled={scheduled} />
+      <LiveToggle showingLive={showLive} scheduled={scheduled} feed={feed} />
     </>
   );
 }

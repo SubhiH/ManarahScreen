@@ -2,15 +2,38 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Radio, Images } from 'lucide-react';
 import { api } from '@/lib/api';
+import type { FeedState } from './LiveStream';
 
 type Props = {
   /** Whether the area is currently showing the feed (not just whether live mode is on). */
   showingLive: boolean;
   /** Live mode was turned on by the weekly schedule. */
   scheduled: boolean;
+  /** Says why a scheduled feed is still waiting behind the slides. */
+  feed: FeedState;
 };
 
-export default function LiveToggle({ showingLive, scheduled }: Props) {
+/** Short label + tooltip detail for a scheduled feed that isn't showing yet. */
+function waitingReason(feed: FeedState): { text: string; detail: string } {
+  switch (feed.kind) {
+    case 'needs-permission':
+      return {
+        text: 'allow camera access',
+        detail: 'Chrome is waiting for camera permission, and its prompt is hidden behind the slides.',
+      };
+    case 'error':
+      return { text: 'live feed unavailable', detail: feed.message };
+    case 'no-picture':
+      return {
+        text: 'live feed has no picture',
+        detail: `The camera is connected but its picture is blank (brightness spread ${feed.spread.toFixed(1)}).`,
+      };
+    default:
+      return { text: 'starting live feed', detail: 'Opening the camera and checking for a picture.' };
+  }
+}
+
+export default function LiveToggle({ showingLive, scheduled, feed }: Props) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const onClick = () => {
@@ -22,18 +45,19 @@ export default function LiveToggle({ showingLive, scheduled }: Props) {
       .finally(() => setBusy(false));
   };
   const Icon = showingLive ? Images : Radio;
-  // Scheduled but still on slides = the camera has no picture yet; a click shows it regardless.
+  // Scheduled but still on slides = no picture yet; a click shows the camera regardless.
+  const waiting = scheduled && !showingLive ? waitingReason(feed) : null;
   const label = showingLive
     ? 'Show slides'
-    : scheduled
-      ? 'Scheduled live feed has no picture — show the camera anyway'
+    : waiting
+      ? `${waiting.detail} Click to show the camera anyway.`
       : 'Show live feed';
   const text = showingLive
     ? scheduled
       ? 'Live · auto'
       : 'Live'
-    : scheduled
-      ? 'Slides · waiting for live feed'
+    : waiting
+      ? `Slides · ${waiting.text}`
       : 'Slides';
   return (
     <button
