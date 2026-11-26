@@ -33,6 +33,12 @@ import {
   updateSlide,
 } from './slides';
 import { getLastSync, runSync, scheduleDailySync } from './sync';
+import {
+  rebaselineLiveSchedule,
+  sanitizeLiveSchedule,
+  startLiveScheduler,
+  tickLiveSchedule,
+} from './live-schedule';
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -69,6 +75,8 @@ app.put('/api/settings/cosmetic', (req, res) => {
   }
   if (liveMode !== undefined) {
     patch.liveMode = !!liveMode;
+    // A button press always wins over the schedule until its next edge.
+    patch.liveModeSource = 'manual';
   }
   if (Object.keys(patch).length === 0) {
     res.status(400).json({ error: 'no writable fields provided' });
@@ -294,8 +302,34 @@ app.put('/api/admin/settings', requireAdmin, (req, res) => {
     }
     body.duaCacheDays = days;
   }
+  if (
+    body.liveScheduleEnabled !== undefined &&
+    typeof body.liveScheduleEnabled !== 'boolean'
+  ) {
+    res.status(400).json({ error: 'liveScheduleEnabled must be a boolean' });
+    return;
+  }
+  if (body.liveSchedule !== undefined) {
+    try {
+      body.liveSchedule = sanitizeLiveSchedule(body.liveSchedule);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+  }
+  // Setting liveMode here counts as a button press; only the scheduler marks it 'schedule'.
+  if (body.liveMode !== undefined) body.liveModeSource = 'manual';
+  else delete (body as Record<string, unknown>).liveModeSource;
   const next = saveSettings(body);
   scheduleDailySync(); // cron may need to be re-registered if dailySyncTime changed
+  if (
+    body.liveSchedule !== undefined ||
+    body.liveScheduleEnabled !== undefined ||
+    body.timezone !== undefined
+  ) {
+    rebaselineLiveSchedule();
+    tickLiveSchedule();
+  }
   const { adminPinHash, ...safe } = next;
   res.json(safe);
 });
@@ -446,6 +480,7 @@ if (WEB_DIST) {
 app.listen(PORT, () => {
   console.log(`[manarah-screen] listening on http://localhost:${PORT}`);
   scheduleDailySync();
+  startLiveScheduler();
   const settings = getSettings();
   const hasConfiguredSource =
     ((settings.prayerTimesSource === 'masjidal' || settings.slidesSource === 'masjidal') &&

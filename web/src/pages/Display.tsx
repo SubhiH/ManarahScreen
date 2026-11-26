@@ -27,7 +27,8 @@ export default function Display() {
   const settingsQ = useQuery({
     queryKey: ['public-settings'],
     queryFn: () => api.publicSettings(),
-    refetchInterval: 30_000,
+    // Also how the display learns that the live schedule switched the feed.
+    refetchInterval: 10_000,
   });
   const prayerQ = useQuery({
     queryKey: ['prayer-times'],

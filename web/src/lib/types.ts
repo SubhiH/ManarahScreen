@@ -44,8 +44,22 @@ export type PublicSettings = {
   fontScaleJumuah: number;
   fontScaleNextPrayer: number;
   liveMode: boolean;
+  /** 'schedule' when the weekly live schedule switched liveMode last. */
+  liveModeSource: 'manual' | 'schedule';
+  liveScheduleEnabled: boolean;
+  liveSchedule: LiveSlot[];
   masjidalConfigured: boolean;
   liveCameraLabel: string;
+};
+
+/** A weekly window when the live feed replaces the slides. Keep in sync with server/db.ts. */
+export type LiveSlot = {
+  /** ISO weekday: 1 = Monday … 5 = Friday … 7 = Sunday. */
+  day: number;
+  /** 'HH:mm', masjid time. */
+  start: string;
+  /** 'HH:mm', masjid time, after start. */
+  end: string;
 };
 
 export type UnifiedSlide = {

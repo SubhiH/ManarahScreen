@@ -53,6 +53,13 @@ export type PostPrayerDhikr = {
   palette?: DhikrPalette;
 };
 
+/** One weekly window when the live feed replaces the slides. */
+export type LiveSlot = {
+  day: number;   // ISO weekday: 1 = Monday … 5 = Friday … 7 = Sunday
+  start: string; // 'HH:mm', masjid time
+  end: string;   // 'HH:mm', masjid time, after start (no overnight slots)
+};
+
 export type SettingsShape = {
   masjidalEmail: string;
   masjidalPassword: string;
@@ -89,6 +96,9 @@ export type SettingsShape = {
   fontScaleJumuah: number;
   fontScaleNextPrayer: number;
   liveMode: boolean;                // when true, slide area shows live camera feed
+  liveModeSource: 'manual' | 'schedule'; // who set liveMode last
+  liveScheduleEnabled: boolean;     // switch liveMode on/off at the liveSchedule edges
+  liveSchedule: LiveSlot[];         // default: the two Jumu'ah slots on Friday
 };
 
 export const DEFAULT_SETTINGS: SettingsShape = {
@@ -126,6 +136,12 @@ export const DEFAULT_SETTINGS: SettingsShape = {
   fontScaleJumuah: 1,
   fontScaleNextPrayer: 1,
   liveMode: false,
+  liveModeSource: 'manual',
+  liveScheduleEnabled: true,
+  liveSchedule: [
+    { day: 5, start: '12:15', end: '13:00' },
+    { day: 5, start: '13:15', end: '14:00' },
+  ],
 };
 
 const getStmt = db.prepare('SELECT value FROM settings WHERE key = ?');

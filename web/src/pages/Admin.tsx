@@ -8,7 +8,7 @@ import {
   DHIKR_PALETTE_KEYS,
   DHIKR_PALETTES,
 } from '@/lib/dhikrPalettes';
-import type { PostPrayerDhikr, UnifiedSlide } from '@/lib/types';
+import type { LiveSlot, PostPrayerDhikr, UnifiedSlide } from '@/lib/types';
 
 export default function Admin() {
   const statusQ = useQuery({ queryKey: ['admin-status'], queryFn: () => api.adminStatus() });
@@ -453,77 +453,217 @@ function SourcesTab({ s, save }: { s: SettingsState; save: SaveFn }) {
 
 function LayoutTab({ s, save }: { s: SettingsState; save: SaveFn }) {
   return (
-    <Card title="Display layout">
-      <Field label="Layout style">
-        <div className="flex flex-wrap gap-2">
-          {(['sidebar-right', 'sidebar-bottom', 'top-bar', 'flyer-board'] as const).map(
-            (k) => (
+    <>
+      <Card title="Display layout">
+        <Field label="Layout style">
+          <div className="flex flex-wrap gap-2">
+            {(['sidebar-right', 'sidebar-bottom', 'top-bar', 'flyer-board'] as const).map(
+              (k) => (
+                <button
+                  key={k}
+                  onClick={() => save({ layout: k })}
+                  className={cn(
+                    'rounded-md border px-4 py-2 text-sm',
+                    s.layout === k
+                      ? 'border-theme-accent bg-theme-accent/10 text-theme-accent'
+                      : 'border-theme-border/10 text-theme-text/90 hover:bg-theme-border/5',
+                  )}
+                >
+                  {k === 'sidebar-right' && 'Sidebar (right)'}
+                  {k === 'sidebar-bottom' && 'Sidebar (bottom)'}
+                  {k === 'top-bar' && 'Top bar'}
+                  {k === 'flyer-board' && 'Flyer board (1920×1080)'}
+                </button>
+              ),
+            )}
+          </div>
+        </Field>
+        <Field
+          label={`Sidebar size: ${s.sidebarPercent}%`}
+          hint="Applies to sidebar layouts (right / bottom)."
+        >
+          <input
+            type="range"
+            min={18}
+            max={45}
+            value={s.sidebarPercent}
+            onChange={(e) => save({ sidebarPercent: Number(e.target.value) })}
+          />
+        </Field>
+        <Field label="Clock shows seconds">
+          <Toggle
+            value={s.clockSeconds}
+            onChange={(v) => save({ clockSeconds: v })}
+          />
+        </Field>
+        <Field label="Color theme" hint="Applies to the whole app (display + admin).">
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { k: 'midnight', label: 'Midnight Gold', sub: 'dark' },
+                { k: 'forest', label: 'Forest Emerald', sub: 'dark' },
+                { k: 'royal', label: 'Royal Plum', sub: 'dark' },
+                { k: 'navy', label: 'Deep Navy', sub: 'dark' },
+                { k: 'graphite', label: 'Graphite', sub: 'dark' },
+                { k: 'cream', label: 'Masjid Cream', sub: 'bright' },
+                { k: 'parchment', label: 'Parchment Rose', sub: 'bright' },
+              ] as const
+            ).map((t) => (
               <button
-                key={k}
-                onClick={() => save({ layout: k })}
+                key={t.k}
+                onClick={() => save({ theme: t.k })}
                 className={cn(
-                  'rounded-md border px-4 py-2 text-sm',
-                  s.layout === k
+                  'flex flex-col items-start gap-0.5 rounded-md border px-4 py-2 text-sm transition-colors',
+                  s.theme === t.k
                     ? 'border-theme-accent bg-theme-accent/10 text-theme-accent'
                     : 'border-theme-border/10 text-theme-text/90 hover:bg-theme-border/5',
                 )}
               >
-                {k === 'sidebar-right' && 'Sidebar (right)'}
-                {k === 'sidebar-bottom' && 'Sidebar (bottom)'}
-                {k === 'top-bar' && 'Top bar'}
-                {k === 'flyer-board' && 'Flyer board (1920×1080)'}
+                <span className="font-semibold">{t.label}</span>
+                <span className="text-xs opacity-60">{t.sub}</span>
               </button>
-            ),
-          )}
-        </div>
-      </Field>
+            ))}
+          </div>
+        </Field>
+      </Card>
+      <LiveScheduleCard s={s} save={save} />
+    </>
+  );
+}
+
+/** Index + 1 is the ISO weekday the server stores. */
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function slotProblem(slot: LiveSlot): string | null {
+  if (!slot.start || !slot.end) return 'Set both times';
+  if (slot.end <= slot.start) return 'End must be after start';
+  return null;
+}
+
+function LiveScheduleCard({ s, save }: { s: SettingsState; save: SaveFn }) {
+  const [slots, setSlots] = useState<LiveSlot[]>(s.liveSchedule);
+  const [edited, setEdited] = useState(false);
+  const editedRef = useRef(false);
+
+  // Adopt server values unless the admin has edits in flight.
+  useEffect(() => {
+    if (editedRef.current) return;
+    setSlots(s.liveSchedule);
+  }, [s.liveSchedule]);
+
+  const markEdited = () => {
+    editedRef.current = true;
+    setEdited(true);
+  };
+  const update = (index: number, patch: Partial<LiveSlot>) => {
+    markEdited();
+    setSlots((prev) => prev.map((slot, i) => (i === index ? { ...slot, ...patch } : slot)));
+  };
+  const hasProblem = slots.some((slot) => slotProblem(slot) !== null);
+  const commit = () => {
+    if (hasProblem) return;
+    editedRef.current = false;
+    setEdited(false);
+    save({ liveSchedule: slots });
+  };
+  const layoutShowsLive = s.layout === 'sidebar-right' || s.layout === 'flyer-board';
+
+  return (
+    <Card title="Live feed schedule">
       <Field
-        label={`Sidebar size: ${s.sidebarPercent}%`}
-        hint="Applies to sidebar layouts (right / bottom)."
+        label="Switch to the live feed automatically"
+        hint="At the start of each slot the display switches to the live feed, and back to the slides when the slot ends. If the camera has no picture, the slides stay up until it does. The Live button on the display still works in between."
       >
-        <input
-          type="range"
-          min={18}
-          max={45}
-          value={s.sidebarPercent}
-          onChange={(e) => save({ sidebarPercent: Number(e.target.value) })}
-        />
-      </Field>
-      <Field label="Clock shows seconds">
         <Toggle
-          value={s.clockSeconds}
-          onChange={(v) => save({ clockSeconds: v })}
+          value={s.liveScheduleEnabled}
+          onChange={(v) => save({ liveScheduleEnabled: v })}
         />
       </Field>
-      <Field label="Color theme" hint="Applies to the whole app (display + admin).">
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { k: 'midnight', label: 'Midnight Gold', sub: 'dark' },
-              { k: 'forest', label: 'Forest Emerald', sub: 'dark' },
-              { k: 'royal', label: 'Royal Plum', sub: 'dark' },
-              { k: 'navy', label: 'Deep Navy', sub: 'dark' },
-              { k: 'graphite', label: 'Graphite', sub: 'dark' },
-              { k: 'cream', label: 'Masjid Cream', sub: 'bright' },
-              { k: 'parchment', label: 'Parchment Rose', sub: 'bright' },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.k}
-              onClick={() => save({ theme: t.k })}
-              className={cn(
-                'flex flex-col items-start gap-0.5 rounded-md border px-4 py-2 text-sm transition-colors',
-                s.theme === t.k
-                  ? 'border-theme-accent bg-theme-accent/10 text-theme-accent'
-                  : 'border-theme-border/10 text-theme-text/90 hover:bg-theme-border/5',
-              )}
-            >
-              <span className="font-semibold">{t.label}</span>
-              <span className="text-xs opacity-60">{t.sub}</span>
-            </button>
-          ))}
+      {!layoutShowsLive && (
+        <div className="text-xs text-theme-text-dim">
+          The live feed only shows on the Sidebar (right) and Flyer board layouts.
         </div>
-      </Field>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-theme-text-dim">
+            Weekly slots · {s.timezone} time
+          </span>
+          {edited && <span className="text-xs font-semibold text-theme-accent">Unsaved changes</span>}
+        </div>
+        {slots.length === 0 && (
+          <div className="text-sm text-theme-text-dim/70">No slots — the feed never turns on by itself.</div>
+        )}
+        {slots.map((slot, i) => {
+          const problem = slotProblem(slot);
+          return (
+            <div key={i} className="flex flex-wrap items-center gap-2">
+              <select
+                className={inputCls}
+                value={slot.day}
+                onChange={(e) => update(i, { day: Number(e.target.value) })}
+                aria-label={`Slot ${i + 1} day`}
+              >
+                {WEEKDAYS.map((name, d) => (
+                  <option key={name} value={d + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="time"
+                className={inputCls}
+                value={slot.start}
+                onChange={(e) => update(i, { start: e.target.value })}
+                aria-label={`Slot ${i + 1} start`}
+              />
+              <span className="text-sm text-theme-text-dim">to</span>
+              <input
+                type="time"
+                className={inputCls}
+                value={slot.end}
+                onChange={(e) => update(i, { end: e.target.value })}
+                aria-label={`Slot ${i + 1} end`}
+              />
+              <IconBtn
+                label="Remove slot"
+                onClick={() => {
+                  markEdited();
+                  setSlots((prev) => prev.filter((_, j) => j !== i));
+                }}
+              >
+                ✕
+              </IconBtn>
+              {problem && <span className="text-xs text-red-400">{problem}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            markEdited();
+            setSlots((prev) => [
+              ...prev,
+              { day: prev[prev.length - 1]?.day ?? 5, start: '', end: '' },
+            ]);
+          }}
+          className="rounded-md border border-theme-border/10 px-4 py-2 text-sm font-semibold text-theme-text/90 hover:bg-theme-border/5"
+        >
+          + Add slot
+        </button>
+        <button
+          type="button"
+          onClick={commit}
+          disabled={!edited || hasProblem}
+          className="rounded-md bg-theme-accent px-4 py-2 text-sm font-semibold text-theme-accent-contrast hover:brightness-110 disabled:opacity-40"
+        >
+          Save schedule
+        </button>
+      </div>
     </Card>
   );
 }
